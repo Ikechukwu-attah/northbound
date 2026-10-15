@@ -28,10 +28,10 @@ test('opposing crowds and a stationary player never overlap over 45 seconds at s
   for(let frame=0;frame<2700;frame++){n.stepCrowd(actors,1/60,[-36,z]);assert.ok(w.distance(actors[0].position,actors[1].position)>=.68-1e-6);for(const actor of actors){assert.ok(n.isWalkable(actor.position));assert.ok(w.distance(actor.position,[-36,z])>=.68-1e-6);assert.ok(actor.position[1]<0);}}
  }
 });
-test('player swept movement yields to a person and resumes without tunnelling',()=>{
+test('player swept movement pushes past a person and never permanently stalls',()=>{
  const path=[[-60,-29],[-12,-29]],block=[-36,-28.64];let current=n.lanePoint(path,0),fraction=0;
- for(let i=0;i<300;i++){const step=n.advanceWalker(current,path,fraction,.01,[block]);current=step.position;fraction=step.fraction;assert.ok(w.distance(current,block)>=.68);}
- assert.ok(fraction<1&&fraction>.3);for(let i=0;i<300&&fraction<1;i++){const step=n.advanceWalker(current,path,fraction,.01,[]);current=step.position;fraction=step.fraction;}assert.equal(fraction,1);
+ for(let i=0;i<300&&fraction<1;i++){const step=n.advanceWalker(current,path,fraction,.01,[block]);assert.ok(step.fraction>=fraction,'never moves backward');assert.ok(n.isWalkable(step.position),'stays on the walkable mesh');current=step.position;fraction=step.fraction;}
+ assert.equal(fraction,1); // a person on the path cannot permanently block the player
 });
 test('every destination estimate equals saved journey time at rested and exhausted pace',()=>{
  for(const energy of [100,10])for(const target of [...w.PLACES.map(p=>({id:p.id,p:w.entrance(p)})),...t.STOPS.map(p=>({id:'stop:'+p.id,p:p.point}))]){
@@ -89,10 +89,21 @@ test('walking follows turns at low frame rates without cutting corners or gettin
   }
   assert.equal(fraction,1);
  }
- // A long frame must still yield to somebody on the incoming leg of a turn.
+ // A person on the incoming leg must not permanently block a long frame; the player pushes past.
  const path=routes[0],block=n.lanePoint(path,.05);
- const stopped=n.advanceWalker(n.lanePoint(path,0),path,0,.5,[block]);
- assert.ok(stopped.fraction<.05);assert.ok(w.distance(stopped.position,block)>=.68);
+ const moved=n.advanceWalker(n.lanePoint(path,0),path,0,.5,[block]);
+ assert.ok(moved.fraction>0&&n.isWalkable(moved.position));
+});
+test('an NPC parked anywhere on the route never freezes the player (#4)',()=>{
+ const base=fresh();
+ for(const to of ['home','reference','waterfront','bluffs','humber']){
+  const journey=act(at(base,'queen'),'walk',to).journey;
+  for(const frac of [.15,.5,.85]){
+   const block=n.lanePoint(journey.path,frac);let position=n.lanePoint(journey.path,0),fraction=0;const inc=.06/(journey.seconds-journey.waitSeconds);
+   for(let f=0;f<80000&&fraction<1;f++){const step=n.advanceWalker(position,journey.path,fraction,inc,[block]);position=step.position;fraction=step.fraction;}
+   assert.equal(fraction,1,`walk to ${to} blocked by an NPC at ${frac} must still complete`);
+  }
+ }
 });
 
 test('every ordered place pair completes at the renderer frame-time cap',()=>{

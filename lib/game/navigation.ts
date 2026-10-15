@@ -63,13 +63,12 @@ export function advanceWalker(current:Point,path:Point[],fraction:number,increme
  let result={position:current,fraction};
  for(let i=1;i<=steps;i++){
   const nextFraction=i===steps?end:fraction+(end-fraction)*i/steps;
-  const next=lanePoint(path,nextFraction),samples=Math.max(1,Math.ceil(distance(result.position,next)/.2));
-  let clear=segmentWalkable(result.position,next);
-  for(let sample=1;clear&&sample<=samples;sample++){
-   const t=sample/samples;
-   clear=clearOfPeople([result.position[0]+(next[0]-result.position[0])*t,result.position[1]+(next[1]-result.position[1])*t],people);
-  }
-  if(!clear)break;
+  // Static geometry (walls/buildings) hard-blocks; people are soft — the player pushes
+  // past NPCs so a pedestrian on a narrow sidewalk can never freeze the walk. NPCs avoid
+  // the player on their side (stepCrowd), so overlap is brief and rare.
+  void people;
+  const next=lanePoint(path,nextFraction);
+  if(!segmentWalkable(result.position,next))break;
   result={position:next,fraction:nextFraction};
  }
  return result;

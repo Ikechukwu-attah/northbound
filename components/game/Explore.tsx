@@ -5,7 +5,7 @@ import {DISTRICTS,money,type Spot,type DistrictId} from '@/lib/game/data';
 import {PLACES,placeById,nearestPlace,entrance,walkingPath,walkMinutes,pathLength,distance,type Point} from '@/lib/game/world';
 import {STOPS,LINES,WASHROOM_STOPS,nearestStop,stopById,transitRoute,serviceOpen,FARE} from '@/lib/game/transit';
 import {fareFor,journeyPosition,realWalkInfo,travelEstimate,type GameState,type Command} from '@/lib/game/engine';
-import {placeGeo,stopGeo,shoreline,districts,OSM_META} from '@/lib/game/geo';
+import {placeGeo,stopGeo,shoreline,islands,districts,OSM_META} from '@/lib/game/geo';
 // Real Toronto overview projected from OpenStreetMap: former-municipality bboxes, the
 // Lake Ontario waterfront, and real TTC stop positions. The player dot uses the real
 // coordinate of their nearest place (the game world itself is compressed).
@@ -17,6 +17,7 @@ export function CityMap({point,small=false,onStop,onDistrict,selectedStop}:{poin
  return <svg className={'city-map '+(small?'small':'')} viewBox="0 0 640 540" role="img" aria-label="Toronto overview from OpenStreetMap: North York across the north, Etobicoke west, Scarborough east, York west-centre, East York east-centre, Lake Ontario to the south. Subway and surface transit corridors.">
  <rect width="640" height="540" rx="12" fill="#dedfc9"/>
  <polygon points={lake} fill="#9fc4c1"/>
+ <polygon points={islands.map(p=>`${px(p[0]).toFixed(1)},${py(p[1]).toFixed(1)}`).join(' ')} fill="#cdd8bf" stroke="#aec3b4" strokeWidth="1"/><text x={px(-79.37)} y={py(43.625)} textAnchor="middle" fontSize="8" fill="#5e7566">Toronto Islands</text>
  {DISTRICTS.map(d=>{const b=districts[d.name]?.bbox;if(!b)return null;const x0=px(b[0]),x1=px(b[2]),y0=py(b[3]),y1=py(b[1]);return <rect key={d.id} x={x0} y={y0} width={Math.max(0,x1-x0)} height={Math.max(0,y1-y0)} rx="7" fill="#ffffff" opacity=".1" stroke="#8aa08f" strokeWidth="1.1" strokeDasharray="5 4"/>;})}
  {LINES.map(line=>{const pts=line.stops.map(id=>{const c=stopGeo(id);return c?`${px(c[0]).toFixed(1)},${py(c[1]).toFixed(1)}`:null}).filter(Boolean).join(' ');return <polyline key={line.id} points={pts} stroke={line.color} strokeWidth={line.mode==='subway'?4:2.3} strokeDasharray={line.mode==='bus'?'5 4':undefined} fill="none" opacity=".85" strokeLinejoin="round"/>;})}
  {!small&&STOPS.map(s=>{const c=stopGeo(s.id);if(!c)return null;return <g key={s.id} role="button" tabIndex={0} aria-label={'Select '+s.name+' stop'} onClick={()=>onStop?.(s.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onStop?.(s.id)}}}><circle cx={px(c[0])} cy={py(c[1])} r="11" fill="transparent"/><circle cx={px(c[0])} cy={py(c[1])} r={selectedStop===s.id?6:3.5} fill={selectedStop===s.id?'#bd473c':'#fff6dc'} stroke="#635b48" strokeWidth="1.4"/><title>{s.name}</title></g>;})}

@@ -79,11 +79,13 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
   else if(dense){if(district==='toronto'){seed%4===0?tower(x+12,z+12,seed):seed%4===1?stone(x+12,z+12,seed):shopRow(x+12,z+12,seed);box(x+12,.105,z+16.5,12,.05,1.6,'#4a4f4d');}else{seed%3===0?slab(x+12,z+12,seed):tower(x+12,z+12,seed);}}
   else {if(seed%6===0)slab(x+12,z+12,seed);else{for(const [hx,hz]of [[8.5,8.5],[15.5,8.5],[8.5,14.2],[15.5,14.2]] as const)house(x+hx,z+hz,seed+hx+hz);for(const dx of [8.5,15.5])box(x+dx,.1,z+12,1.6,.06,5,'#ccbfa6');}}
   for(const axis of ['x','z'] as Axis[]){const road=roadAt(axis,axis==='x'?z:x,axis==='x'?x:z);const put=(along:number,across:number,y:number,length:number,width:number,height:number,c:string)=>axis==='x'?box(x+along,y,z+across,length,height,width,c):box(x+across,y,z+along,width,height,length,c);
-   put(12,0,-.01,24,road.width,.12,ASPHALT);for(const w of [6,18])put(w,((seed+w)%2?1:-1)*road.width/4,.055,2.6+seed%2,road.width/3,.03,WEAR[(seed+w)%3]);
+   // Clip N-S streets at the shore so they stop at the waterfront road / lookout, not in the lake.
+   const shoreNS=cz===-1&&axis==='z',shoreEnd=district==='scarborough'?-3.2:-1.6,rLen=shoreNS?shoreEnd+24:24,rMid=shoreNS?(shoreEnd+24)/2:12;
+   put(rMid,0,-.01,rLen,road.width,.12,ASPHALT);for(const w of [6,18])if(w<rLen)put(w,((seed+w)%2?1:-1)*road.width/4,.055,2.6+seed%2,road.width/3,.03,WEAR[(seed+w)%3]);
    for(const side of [-1,1]){put(12,side*5,.13,14,1.45,.22,'#dbd7c8');put(12,side*(road.width/2+.1),.13,11,.18,.27,'#b9beb6');
     if(road.bike){put(12,side*(road.width/2+.55),.06,11,.75,.055,'#438a69');put(12,side*(road.width/2+.96),.1,11,.07,.02,'#dfebda');}
     if(road.arterial){put(12,side*.1,.067,11,.065,.025,'#efc755');for(let lane=1;lane<road.lanes/2;lane++)for(const a of [7.7,11.7,15.7])put(a,side*lane*road.laneWidth,.07,2,.065,.025,'#e6e9df');}
-    if(road.tracks)for(const rail of [-.36,.36])put(12,side*road.laneWidth/2+rail,.09,24,.08,.045,'#8a8f8c');
+    if(road.tracks)for(const rail of [-.36,.36])put(rMid,side*road.laneWidth/2+rail,.09,rLen,.08,.045,'#8a8f8c');
    }
    // Lamppost, bin, hydrant and a tree are repeated instances, not individual meshes.
    const px=axis==='x'?x+10:x+5.8,pz=axis==='x'?z+5.8:z+10;

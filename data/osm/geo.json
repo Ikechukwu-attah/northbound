@@ -14,7 +14,7 @@
    43.87,
    -79.11
   ],
-  "fetchedAt": "2026-10-15T20:01:49.957Z",
+  "fetchedAt": "2026-10-15T21:05:22.714Z",
   "note": "Compressed game map; these real coords drive simulated distance/time only."
  },
  "stops": {
@@ -786,6 +786,10 @@
   [
    -79.16429,
    43.75844
+  ],
+  [
+   -79.115,
+   43.8
   ]
  ],
  "arterials": {
@@ -793,16 +797,16 @@
    "ns": [
     "Spadina Avenue",
     "Avenue Road",
-    "Church Street",
+    "Jarvis Street",
     "Parliament Street",
     "Broadview Avenue",
     "Carlaw Avenue"
    ],
    "ew": [
     "St. Clair Avenue West",
-    "Queen Street East",
     "Gerrard Street East",
     "Lake Shore Boulevard East",
+    "Queen Street East",
     "Queen Street West",
     "King Street West"
    ]
@@ -846,9 +850,9 @@
   "Etobicoke": {
    "ns": [
     "Carlingview Drive",
+    "Renforth Drive",
     "The West Mall",
     "The East Mall",
-    "Shorncliffe Road",
     "Kipling Avenue",
     "Royal York Road"
    ],
@@ -872,8 +876,7 @@
     "Trethewey Drive",
     "Rogers Road",
     "Dupont Street",
-    "Dundas Street West",
-    "The Kingsway"
+    "Dundas Street West"
    ]
   },
   "East York": {
@@ -890,5 +893,27 @@
     "O'Connor Drive"
    ]
   }
- }
+ },
+ "islands": [
+  [
+   -79.398,
+   43.629
+  ],
+  [
+   -79.378,
+   43.618
+  ],
+  [
+   -79.345,
+   43.616
+  ],
+  [
+   -79.34,
+   43.627
+  ],
+  [
+   -79.375,
+   43.635
+  ]
+ ]
 }

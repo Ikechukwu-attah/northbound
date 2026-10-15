@@ -131,8 +131,14 @@ async function main(){
   const seen=new Set(),pts=[];for(const e of els){const c=coordOf(e);if(!c)continue;const r=round(c),k=r.join();if(!seen.has(k)){seen.add(k);pts.push(r);}}
   if(pts.length>fetched.length)fetched=pts;
  }catch(e){console.log('   shoreline attempt failed:',e.message);}}
- const shoreline=(fetched.length>=8?fetched:SHORE_FALLBACK.map(round)).sort((a,b)=>a[0]-b[0]);
- console.log(`   ${shoreline.length} shoreline points (${fetched.length>=8?'OSM fetch':'real fallback'}) ${shoreline[0]} … ${shoreline[shoreline.length-1]}`);
+ let shoreline=(fetched.length>=8?fetched:SHORE_FALLBACK.map(round));
+ // Guarantee the coastline spans the whole map (Etobicoke Creek → Rouge) so the lake fill reaches both edges.
+ if(!shoreline.some(p=>p[0]<=-79.53))shoreline.push([-79.56,43.585]);
+ if(!shoreline.some(p=>p[0]>=-79.12))shoreline.push([-79.115,43.8]);
+ shoreline=shoreline.sort((a,b)=>a[0]-b[0]);
+ // Toronto Islands outline (real-world approximate), rendered as a landmass in the inner harbour.
+ const islands=[[-79.398,43.629],[-79.378,43.618],[-79.345,43.616],[-79.34,43.627],[-79.375,43.635]];
+ console.log(`   ${shoreline.length} shoreline points (${fetched.length>=8?'OSM fetch':'real fallback'}); islands ${islands.length}pts; ${shoreline[0]} … ${shoreline[shoreline.length-1]}`);
 
  console.log('5/5 district arterials (real OSM street names)…');
  const arterials={};for(const d of DISTRICTS)arterials[d]={ns:[],ew:[]};
@@ -170,7 +176,7 @@ async function main(){
  const out={
   meta:{source:'OpenStreetMap via Overpass',endpoints:ENDPOINTS,license:'ODbL-1.0',attribution:'© OpenStreetMap contributors',
    bbox:BBOX,fetchedAt:new Date().toISOString(),note:'Compressed game map; these real coords drive simulated distance/time only.'},
-  stops,places,districts,shoreline,arterials,
+  stops,places,districts,shoreline,arterials,islands,
  };
  const complete=!unresolved.length&&shoreline.length>=4&&Object.keys(stops).length===Object.keys(STOP_MAP).length&&Object.keys(places).length===Object.keys(PLACE_MAP).length;
  console.log(`\nstops=${Object.keys(stops).length}/${Object.keys(STOP_MAP).length} places=${Object.keys(places).length}/${Object.keys(PLACE_MAP).length} districts=${Object.keys(districts).length} shoreline=${shoreline.length}`);
