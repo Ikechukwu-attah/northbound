@@ -14,6 +14,8 @@ export const SKINS=['#e3b88e','#b87e56','#764a35','#f1d3b5'];
 const SPEED_WALK=80,SPEED_BIKE=250;
 const anchorFrom=(s:GameState):Point|null=>placeGeo(s.location)||placeGeo(nearestPlace(s.position).id);
 const realMinutes=(from:Point|null,to:Point|null,bike:boolean):number|null=>from&&to?Math.max(1,Math.ceil(haversineMetres(from,to)/(bike?SPEED_BIKE:SPEED_WALK))):null;
+// Real-world distance/time for a trip from the player to a geo point, matching the engine's own timing.
+export function realWalkInfo(s:GameState,to:Point|null,bike=false):{metres:number;minutes:number}|null{const from=anchorFrom(s);if(!from||!to)return null;const metres=haversineMetres(from,to);return {metres,minutes:Math.max(1,Math.ceil(metres/(bike?SPEED_BIKE:SPEED_WALK)))*(!bike&&s.needs.energy<20?2:1)};}
 export function newGame(c:Command):GameState{
  if(c.path&&!PATHS.some(p=>p.id===c.path))throw new Error('Choose a valid starting path.');
  const name=(c.name||'').trim();if(!name||name.length>22)throw new Error('Choose a name between 1 and 22 characters.');
@@ -36,7 +38,7 @@ function requirePlace(s:GameState,id:string){if(!isNear(s,id))throw new Error(`W
 function settlePosition(s:GameState,p:Point){s.position=p;s.district=districtAt(p);const place=nearbyPlace(p);s.location=place?.id||'';if(place){s.district=place.district;if(!s.visitedPlaces.includes(place.id))s.visitedPlaces.push(place.id);}if(!s.visited.includes(s.district))s.visited.push(s.district);s.bike=s.bike||s.visited.length>=3;}
 export function journeyFraction(j:Journey,now=Date.now()){return Math.max(0,Math.min(1,(now-j.startedAt-j.waitSeconds*1000)/((j.seconds-j.waitSeconds)*1000)));}
 export function journeyPosition(j:Journey,now=Date.now()):Point{return pointAlong(j.path,journeyFraction(j,now));}
-export function fareFor(s:GameState){return s.minutes<s.transferUntil||(s.fareMonth===fareMonth(s.minutes)&&s.paidFares>=FARE.monthlyCap)?0:FARE.adult;}
+export function fareFor(s:GameState){const capped=s.fareMonth===fareMonth(s.minutes)&&s.paidFares>=FARE.monthlyCap;const transfer=s.paidFares>0&&s.minutes<s.transferUntil&&s.minutes>=s.transferUntil-FARE.transferMinutes;return capped||transfer?0:FARE.adult;}
 export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Math.random()):{state:GameState;message:string;notifications:string[]}{
  const s=migrateState(original);let message='';const spot=placeById(s.location);
  if(s.journey&&!['arrive','cancel'].includes(c.type))throw new Error('Finish your journey before taking another action.');

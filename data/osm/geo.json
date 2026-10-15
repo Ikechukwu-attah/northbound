@@ -4,7 +4,6 @@
   "endpoints": [
    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
    "https://overpass-api.de/api/interpreter",
-   "https://overpass.osm.ch/api/interpreter",
    "https://overpass.kumi.systems/api/interpreter"
   ],
   "license": "ODbL-1.0",
@@ -15,7 +14,7 @@
    43.87,
    -79.11
   ],
-  "fetchedAt": "2026-10-15T07:49:44.062Z",
+  "fetchedAt": "2026-10-15T16:03:05.988Z",
   "note": "Compressed game map; these real coords drive simulated distance/time only."
  },
  "stops": {
@@ -632,53 +631,101 @@
   }
  },
  "districts": {
+  "Scarborough": {
+   "bbox": [
+    -79.34134,
+    43.66972,
+    -79.11322,
+    43.85544
+   ],
+   "center": [
+    -79.22728,
+    43.76258
+   ],
+   "osm": "relation/2520672"
+  },
+  "Etobicoke": {
+   "bbox": [
+    -79.63928,
+    43.57961,
+    -79.4669,
+    43.76303
+   ],
+   "center": [
+    -79.55309,
+    43.67132
+   ],
+   "osm": "relation/2520691"
+  },
+  "York": {
+   "bbox": [
+    -79.536,
+    43.64774,
+    -79.4119,
+    43.71069
+   ],
+   "center": [
+    -79.47395,
+    43.67921
+   ],
+   "osm": "relation/2989336"
+  },
+  "North York": {
+   "bbox": [
+    -79.58522,
+    43.69299,
+    -79.29916,
+    43.81564
+   ],
+   "center": [
+    -79.44219,
+    43.75432
+   ],
+   "osm": "relation/2989344"
+  },
+  "East York": {
+   "bbox": [
+    -79.38008,
+    43.67852,
+    -79.28777,
+    43.72172
+   ],
+   "center": [
+    -79.33393,
+    43.70012
+   ],
+   "osm": "relation/2989348"
+  },
   "Old Toronto": {
+   "bbox": [
+    -79.4425,
+    43.628,
+    -79.2769,
+    43.7111
+   ],
    "center": [
     -79.3832,
     43.6532
    ],
-   "bbox": null,
-   "osm": "fallback"
-  },
-  "North York": {
-   "center": [
-    -79.4112,
-    43.7615
-   ],
-   "bbox": null,
-   "osm": "fallback"
-  },
-  "Scarborough": {
-   "center": [
-    -79.2318,
-    43.7731
-   ],
-   "bbox": null,
-   "osm": "fallback"
-  },
-  "Etobicoke": {
-   "center": [
-    -79.5665,
-    43.6435
-   ],
-   "bbox": null,
-   "osm": "fallback"
-  },
-  "York": {
-   "center": [
-    -79.4819,
-    43.6896
-   ],
-   "bbox": null,
-   "osm": "fallback"
-  },
-  "East York": {
-   "center": [
-    -79.3376,
-    43.6907
-   ],
-   "bbox": null,
    "osm": "fallback"
   }
- }
+ },
+ "shoreline": [
+  [
+   -79.51628,
+   43.59328
+  ],
+  [
+   -79.47954,
+   43.61689
+  ],
+  [
+   -79.38137,
+   43.63975
+  ],
+  [
+   -79.23498,
+   43.70572
+  ]
+ ]
 }

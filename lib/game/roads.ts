@@ -1,11 +1,36 @@
 import {BLOCK,PLACES,districtAt,type Point} from './world';
 export type Axis='x'|'z';
 export type Road={axis:Axis;coordinate:number;name:string;lanes:2|4|6;width:number;laneWidth:number;tracks:boolean;bike:boolean;arterial:boolean};
-// Compressed game corridors, aligned to the persistent 24-unit city grid.
+// Real Toronto arterials, each gated to the along-range of the compressed map where that
+// street actually runs. Everything off this list is a narrow 2-lane residential street.
+// axis 'x' = E-W road keyed by z (along = x); axis 'z' = N-S road keyed by x (along = z).
+type Arterial={axis:Axis;coordinate:number;along:[number,number];lanes:4|6;name?:string;west?:string;east?:string;tracks?:boolean;bike?:boolean};
+const ARTERIALS:Arterial[]=[
+ {axis:'x',coordinate:-96,along:[-260,55],lanes:4,west:'Bloor St W',east:'Bloor St E',bike:true},
+ {axis:'x',coordinate:-96,along:[55,160],lanes:4,name:'Danforth Ave'},
+ {axis:'x',coordinate:-48,along:[-210,210],lanes:4,west:'Queen St W',east:'Queen St E',tracks:true},
+ {axis:'x',coordinate:-24,along:[-130,130],lanes:4,west:'King St W',east:'King St E',tracks:true},
+ {axis:'x',coordinate:-192,along:[-260,370],lanes:6,west:'Eglinton Ave W',east:'Eglinton Ave E'},
+ {axis:'x',coordinate:-312,along:[-120,120],lanes:6,west:'Sheppard Ave W',east:'Sheppard Ave E'},
+ {axis:'z',coordinate:0,along:[-470,0],lanes:4,name:'Yonge St'},
+ {axis:'z',coordinate:-24,along:[-120,-10],lanes:4,name:'University Ave'},
+ {axis:'z',coordinate:-48,along:[-130,-10],lanes:4,name:'Spadina Ave',tracks:true},
+ {axis:'x',coordinate:-408,along:[-90,90],lanes:6,west:'Finch Ave W',east:'Finch Ave E'}, // North York
+ {axis:'x',coordinate:-120,along:[150,370],lanes:4,name:'Lawrence Ave E'}, // Scarborough
+ {axis:'z',coordinate:240,along:[-240,-20],lanes:4,name:'McCowan Rd'},
+ {axis:'z',coordinate:216,along:[-240,-20],lanes:4,name:'Kennedy Rd'},
+ {axis:'x',coordinate:-24,along:[-240,-150],lanes:4,name:'Lake Shore Blvd W'}, // Etobicoke
+ {axis:'z',coordinate:-192,along:[-110,-10],lanes:4,name:'Islington Ave'},
+ {axis:'z',coordinate:-216,along:[-110,-10],lanes:4,name:'Kipling Ave'},
+ {axis:'z',coordinate:-120,along:[-230,-150],lanes:4,name:'Weston Rd'}, // York
+ {axis:'x',coordinate:-120,along:[55,140],lanes:4,name:'Danforth Ave'}, // East York
+ {axis:'z',coordinate:96,along:[-180,-110],lanes:4,name:'Pape Ave'},
+];
 export function roadAt(axis:Axis,coordinate:number,along=0):Road{
- const names:Record<number,string>=axis==='z'?{0:'Yonge St',[-24]:'University Ave',[-48]:'Spadina Ave'}:{[-96]:along<0?'Bloor St W':'Bloor St E',[-48]:along<0?'Queen St W':'Queen St E',[-24]:along<0?'King St W':'King St E',[-192]:along<0?'Eglinton Ave W':'Eglinton Ave E',[-312]:along<0?'Sheppard Ave W':'Sheppard Ave E'};
- const name=names[coordinate]||'Local street',arterial=!!names[coordinate]&&(axis==='x'||coordinate===0||along>=-120);const lanes=arterial?(axis==='x'&&[-192,-312].includes(coordinate)?6:4):2;const laneWidth=lanes===6?1.4:1.6;
- return {axis,coordinate,name:arterial?name:'Local street',lanes,width:lanes*laneWidth,laneWidth,arterial,tracks:arterial&&(axis==='x'?[-48,-24].includes(coordinate):coordinate===-48&&along>=-120),bike:arterial&&(axis==='x'?coordinate===-96:coordinate===0)};
+ const a=ARTERIALS.find(r=>r.axis===axis&&r.coordinate===coordinate&&along>=r.along[0]&&along<=r.along[1]);
+ if(!a)return {axis,coordinate,name:'Local street',lanes:2,width:3.2,laneWidth:1.6,arterial:false,tracks:false,bike:false};
+ const name=a.name??(along<0?a.west!:a.east!),laneWidth=a.lanes===6?1.4:1.6;
+ return {axis,coordinate,name,lanes:a.lanes,width:a.lanes*laneWidth,laneWidth,arterial:true,tracks:!!a.tracks,bike:!!a.bike};
 }
 export const junctionKey=(x:number,z:number)=>`${x},${z}`;
 export function signalAt(x:number,z:number,seconds:number,axis:Axis):'green'|'amber'|'red'{const phase=((seconds+(Math.round(x/24)*3+Math.round(z/24)*5))%32+32)%32;const start=axis==='z'?0:16;return phase>=start&&phase<start+11?'green':phase>=start+11&&phase<start+13?'amber':'red';}
@@ -13,13 +38,27 @@ export const signalized=(x:number,z:number)=>roadAt('z',x,z).arterial||roadAt('x
 export type Piece={p:[number,number,number];s:[number,number,number];c:string;r?:number};
 export type Sign={x:number;y:number;z:number;name:string;axis:Axis};
 export type TileData={boxes:Piece[];trees:Piece[];stops:Piece[];signs:Sign[];lights:{x:number;z:number;axis:Axis;p:[number,number,number]}[];blocks:{x:number;z:number;kind:string}[]};
-export function makeRoadTiles(cells:Point[]):TileData{
+// Medium charcoal carriageway under the pastel palette; wear shades patch it subtly.
+export const ASPHALT='#565b5f';
+const WEAR=['#4f5458','#5f6468','#52575b'];
+// Per-district building palettes (red/yellow brick, cream stone, soft glass); neighbours differ by seed offset.
+const PALETTES:Record<string,string[]>={toronto:['#b35e4a','#c77f52','#d8a24e','#8d93a0','#6f93a6','#c7b69a'],'north-york':['#8f9faa','#6f93a6','#c7b69a','#b9875f','#9aa17f','#cdbb98'],scarborough:['#c6a36a','#b7895f','#9aa585','#cdbfa0','#a88a6b','#8f9faa'],etobicoke:['#a9b5ac','#c6b185','#8fa6a0','#b58a68','#9fb0a6','#cdbfa0'],york:['#b86b4f','#c99a5e','#9c8f6f','#c7ad83','#8f7f6a','#b0a187'],'east-york':['#b5935f','#c9b074','#93a06f','#bca47c','#a98f66','#9aa17f']};
+const ROOFS=['#6b4a3b','#7a3f32','#5f6a63','#8a7a5a','#6d6256','#7f8a86'];
+export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
  const out:TileData={boxes:[],trees:[],stops:[],signs:[],lights:[],blocks:[]};
  const box=(x:number,y:number,z:number,w:number,h:number,d:number,c:string,r=0)=>out.boxes.push({p:[x,y,z],s:[w,h,d],c,r});
  const tree=(x:number,z:number,seed:number)=>{box(x,1.1,z,.17,2,.17,'#705c43');out.trees.push({p:[x,2.5,z],s:[1,1.3,1],c:['#7e9e60','#bb954d','#8aab66'][seed%3]});};
- const building=(x:number,z:number,w:number,d:number,h:number,c:string)=>{box(x,h/2+.15,z,w,h,d,c);box(x,h+.23,z,w+.2,.18,d+.2,'#e2d6be');for(let y=1.3;y<h-.2;y+=1.8)for(let a=-w/2+.8;a<w/2;a+=1.6)box(x+a,y,z+d/2+.02,.65,.8,.04,'#3e616a');for(let y=1.3;y<h-.2;y+=1.8)for(let a=-d/2+.8;a<d/2;a+=1.6)box(x+w/2+.02,y,z+a,.04,.8,.65,'#50737a');box(x,.9,z+d/2+.04,.7,1.7,.06,'#345048');};
  const nodes=new Set<string>();
  for(const [cx,cz]of cells){if(cz>=0)continue;const x=cx*BLOCK,z=cz*BLOCK,seed=Math.abs(cx*71+cz*43),district=districtAt([x+12,z+12]),special=PLACES.find(p=>Math.floor(p.x/24)===cx&&Math.floor(p.z/24)===cz);const dense=district==='toronto'||district==='north-york';
+  // Building kit (axis-aligned boxes; the instancer only rotates on Y). Neighbours differ via seed.
+  const pal=PALETTES[district]||PALETTES.toronto,wall=(i:number)=>pal[(seed+i*2)%pal.length],roof=(i:number)=>ROOFS[(seed+i)%ROOFS.length];
+  const win=(s:number,glass=false)=>lightsOn?((seed+Math.round(s*7))%5<2?'#ffe3a1':glass?'#3b4a4c':'#36423f'):glass?((seed+Math.round(s))%3?'#9fc2c6':'#bad4d1'):'#3e616a';
+  const roofKit=(bx:number,bz:number,w:number,d:number,h:number,s:number)=>{box(bx-w/4,h+.55,bz+d/6,1.5,.7,1.5,'#8f9088');box(bx+w/4,h+.95,bz-d/6,.85,1.2,.85,'#b7ac98');if(s%2)box(bx,h+.5,bz-d/4,2.2,.3,1.4,'#6d6f68');if(s%3===0){box(bx-w/5,h+.35,bz+d/4,2,.1,2,'#7c5a44');box(bx-w/5+.6,h+.58,bz+d/4,.5,.4,.5,'#8aa06a');}};
+  const shopRow=(bx:number,bz:number,s:number)=>{const w=11,d=9,storeys=2+s%2,h=storeys*2.3+.9,c=wall(s);box(bx,h/2+.15,bz,w,h,d,c);box(bx,h+.3,bz,w+.3,.5,d+.3,'#d8cdb6');box(bx,1.15,bz+d/2+.04,w-1,1.9,.07,win(0,true));box(bx,2.4,bz+d/2+.08,w-.4,.55,.14,['#c2584a','#2f6d55','#d2a24e','#466a8a','#9a4e7a'][s%5]);box(bx,1.95,bz+d/2+.55,w-1.2,.08,.9,['#b8503f','#2f6d55','#cf9a4b','#3f6f8a'][s%4]);for(let f=1;f<storeys;f++)for(let a=-w/2+1.3;a<w/2-1;a+=2)box(bx+a,1.1+f*2.3+.5,bz+d/2+.05,1,1.1,.05,win(a+f));box(bx-w/2+1.1,1,bz+d/2+.06,1,1.7,.08,'#3a4f49');roofKit(bx,bz,w,d,h,s);};
+  const stone=(bx:number,bz:number,s:number)=>{const w=10.5,d=9,h=8+s%3*2,c=['#cdc2ab','#c7b99c','#bdb199'][s%3];box(bx,h/2+.15,bz,w,h,d,c);box(bx,h+.35,bz,w+.4,.6,d+.4,'#b7ab8e');for(let f=0;f<Math.floor(h/2.2);f++)for(let a=-w/2+1.2;a<w/2-1;a+=1.9)box(bx+a,1.4+f*2.2,bz+d/2+.05,.9,1.4,.05,win(a+f));box(bx-w/2+1.2,1,bz+d/2+.06,1.2,1.9,.08,'#5a4636');roofKit(bx,bz,w,d,h,s);};
+  const tower=(bx:number,bz:number,s:number)=>{const w=7.8,d=7.2,h=14+s%3*4.5,g=['#6f93a6','#5f8f88','#7fa2af'][s%3];box(bx,h/2+.15,bz,w,h,d,g);for(let f=0;f<Math.floor(h/2.1);f++){for(let a=-w/2+1;a<w/2-.6;a+=1.6)box(bx+a,1.3+f*2.1,bz+d/2+.04,1.2,1.4,.04,win(a+f,true));for(let a=-d/2+1;a<d/2-.6;a+=1.6)box(bx+w/2+.04,1.3+f*2.1,bz+a,.04,1.4,1.2,win(a+f+1,true));}box(bx,h+.55,bz,w*.62,1.1,d*.62,'#8f9699');box(bx+w/4,h+1.45,bz-d/5,.95,1.6,.95,'#b7ac98');box(bx-w/4,h+.85,bz+d/5,1.3,.7,1.3,'#8f9088');};
+  const slab=(bx:number,bz:number,s:number)=>{const w=11,d=7,h=8+s%3*1.8,c=wall(s);box(bx,h/2+.15,bz,w,h,d,c);box(bx,h+.3,bz,w+.3,.5,d+.3,'#cfc6b0');for(let f=0;f<Math.floor(h/2.1);f++)for(let a=-w/2+1.3;a<w/2-1;a+=2.1){box(bx+a,1.2+f*2.1,bz+d/2+.04,1.2,1.1,.05,win(a+f));box(bx+a,.95+f*2.1,bz+d/2+.2,1.3,.1,.5,'#9a9488');}roofKit(bx,bz,w,d,h,s);};
+  const house=(hx:number,hz:number,s:number)=>{const w=5.2,d=5.4,h=4.2+s%2*.8,c=wall(s),rc=roof(s);box(hx,h/2+.15,hz,w,h,d,c);box(hx,h+.4,hz,w+.35,.5,d+.35,rc);box(hx,h+.82,hz,w-1.3,.5,d+.35,rc);box(hx,h+1.15,hz,w-2.6,.45,d+.35,rc);box(hx-w/4,1.3,hz+d/2+.18,1.7,1.8,.4,c);box(hx-w/4,1.4,hz+d/2+.4,1.3,1.3,.06,win(1));box(hx+w/4,1,hz+d/2+.3,2,.1,1.1,'#b49a74');box(hx+w/4-.8,1.7,hz+d/2+.8,.13,1.5,.13,'#e2d8c2');box(hx+w/4+.8,1.7,hz+d/2+.8,.13,1.5,.13,'#e2d8c2');box(hx+w/4,2.5,hz+d/2+.78,2,.2,1.1,rc);box(hx+w/4,1,hz+d/2+.06,.8,1.5,.08,'#3a4f49');for(const a of [-w/4,w/4])box(hx+a,h-.8,hz+d/2+.05,.85,1,.05,win(a+2));box(hx+w/3,h+1.35,hz-d/4,.5,1.2,.5,'#8a5b47');};
   box(x+12,-.18,z+12,24,.2,24,'#8d9f72');
   // Every interior is occupied. Public destinations get a paved forecourt and garden.
   const park=!special&&seed%9===0,parking=!special&&!park&&seed%11===0;
@@ -27,28 +66,29 @@ export function makeRoadTiles(cells:Point[]):TileData{
   box(x+12,.02,z+12,12.6,.12,12.6,park?'#80a45f':parking?'#59615e':special?'#c9b99c':'#b9b28e');
   if(special){box(x+12,.12,z+16.8,10,.08,3.8,'#dfcbaa');tree(x+7,z+7,seed);tree(x+17,z+7,seed+1);}
   else if(park){box(x+12,.12,z+12,1.5,.06,12,'#d7c49d');for(const [a,b]of [[8,8],[16,9],[17,16],[8,16]])tree(x+a,z+b,seed+a);box(x+15,.6,z+15,2,.15,.7,'#a17b51');box(x+15,1,z+14.7,2,.6,.12,'#b58e61');}
-  else if(parking){for(let a=8;a<18;a+=2.4){box(x+a,.095,z+9,.08,.025,3.3,'#f1e5cb');box(x+a,.095,z+16,.08,.025,3.3,'#f1e5cb');}box(x+12,.095,z+7.4,11,.025,.08,'#f1e5cb');box(x+12,.095,z+17.6,11,.025,.08,'#f1e5cb');for(const a of [9,14]){box(x+a,.5,z+9,1.2,.65,2.4,a===9?'#a25543':'#c3c8bd');box(x+a,.95,z+9,1.05,.45,1.3,'#365660');}tree(x+18,z+12,seed);}
-  else if(dense){const alley=district==='toronto';building(x+10,z+10,6.5,6,7+seed%12,['#be8d70','#b9ad91','#9aaead'][seed%3]);building(x+16.3,z+16.5,4,3.6,4.2,'#d0a781');box(x+16.3,2.1,z+18.8,4.3,.18,1,'#42725a');if(alley)box(x+12,.105,z+13.8,12, .05,1.6,'#454b49');}
-  else {for(let i=0;i<2;i++){building(x+8.8+i*6,z+11,4.5,7,4.2+i%2,['#bd8b6b','#d2bb96','#a7b5a6'][(seed+i)%3]);box(x+8.8+i*6,4.5+i%2,z+11,4.9,.4,7.4,'#6b6256');box(x+8.8+i*6,.1,z+16.5,1.1,.08,3,'#d5c5a8');}tree(x+18,z+17,seed);}
+  else if(parking){for(let a=8;a<18;a+=2.4){box(x+a,.095,z+9,.08,.025,3.3,'#f1e5cb');box(x+a,.095,z+16,.08,.025,3.3,'#f1e5cb');}box(x+12,.095,z+7.4,11,.025,.08,'#f1e5cb');box(x+12,.095,z+17.6,11,.025,.08,'#f1e5cb');for(const a of [9,14]){box(x+a,.5,z+9,1.2,.65,2.4,a===9?'#a25543':'#c3c8bd');box(x+a,.95,z+9,1.05,.45,1.3,'#365660');}if(!dense){const pc=wall(3);box(x+12,1.7,z+19,12,3.1,3.4,pc);box(x+12,3.35,z+19,12.3,.4,3.7,'#d8cdb6');for(let a=-4.5;a<5;a+=2.2)box(x+12+a,1.5,z+20.6,1.6,1.4,.06,win(a,true));box(x+5.5,3.6,z+17.6,.4,3,.4,'#8a8f8c');box(x+5.5,5,z+17.6,2.1,1,.12,['#c2584a','#466a8a','#2f6d55'][seed%3]);}tree(x+18,z+12,seed);}
+  else if(dense){if(district==='toronto'){seed%4===0?tower(x+12,z+12,seed):seed%4===1?stone(x+12,z+12,seed):shopRow(x+12,z+12,seed);box(x+12,.105,z+16.5,12,.05,1.6,'#4a4f4d');}else{seed%3===0?slab(x+12,z+12,seed):tower(x+12,z+12,seed);}}
+  else {if(seed%6===0)slab(x+12,z+12,seed);else{for(const [hx,hz]of [[8.5,8.5],[15.5,8.5],[8.5,15.5],[15.5,15.5]] as const)house(x+hx,z+hz,seed+hx+hz);for(const dx of [8.5,15.5])box(x+dx,.1,z+12,1.6,.06,5,'#ccbfa6');}}
   for(const axis of ['x','z'] as Axis[]){const road=roadAt(axis,axis==='x'?z:x,axis==='x'?x:z);const put=(along:number,across:number,y:number,length:number,width:number,height:number,c:string)=>axis==='x'?box(x+along,y,z+across,length,height,width,c):box(x+across,y,z+along,width,height,length,c);
-   put(12,0,-.01,24,road.width,.12,'#303a3d');
+   put(12,0,-.01,24,road.width,.12,ASPHALT);for(const w of [6,18])put(w,((seed+w)%2?1:-1)*road.width/4,.055,2.6+seed%2,road.width/3,.03,WEAR[(seed+w)%3]);
    for(const side of [-1,1]){put(12,side*5,.13,14,1.45,.22,'#dbd7c8');put(12,side*(road.width/2+.1),.13,11,.18,.27,'#b9beb6');
     if(road.bike){put(12,side*(road.width/2+.55),.06,11,.75,.055,'#438a69');put(12,side*(road.width/2+.96),.1,11,.07,.02,'#dfebda');}
     if(road.arterial){put(12,side*.1,.067,11,.065,.025,'#efc755');for(let lane=1;lane<road.lanes/2;lane++)for(const a of [7.7,11.7,15.7])put(a,side*lane*road.laneWidth,.07,2,.065,.025,'#e6e9df');}
-    if(road.tracks)for(const rail of [-.36,.36])put(12,side*road.laneWidth/2+rail,.09,24,.07,.04,'#a5acaa');
+    if(road.tracks)for(const rail of [-.36,.36])put(12,side*road.laneWidth/2+rail,.09,24,.08,.045,'#8a8f8c');
    }
    // Lamppost, bin, hydrant and a tree are repeated instances, not individual meshes.
    const px=axis==='x'?x+10:x+5.8,pz=axis==='x'?z+5.8:z+10;
-   box(px,2.3,pz,.12,4.5,.12,'#485650');box(px+.5,4.5,pz,1.1,.1,.12,'#485650');box(px+.9,4.4,pz,.45,.12,.3,'#ffe6a3');box(px+2,.55,pz,.5,1,.5,'#496d54');box(px+3.2,.45,pz,.28,.8,.28,'#c85039');box(px+3.2,.6,pz,.65,.12,.2,'#d36341');tree(axis==='x'?x+17:x+5.8,axis==='x'?z+5.8:z+17,seed);
+   box(px,2.3,pz,.12,4.5,.12,'#485650');box(px+.5,4.5,pz,1.1,.1,.12,'#485650');box(px+.9,4.4,pz,.45,.12,.3,lightsOn?'#fff3c4':'#ffe6a3');box(px+2,.55,pz,.5,1,.5,'#496d54');box(px+3.2,.45,pz,.28,.8,.28,'#c85039');box(px+3.2,.6,pz,.65,.12,.2,'#d36341');tree(axis==='x'?x+17:x+5.8,axis==='x'?z+5.8:z+17,seed);
   }
   nodes.add(junctionKey(x,z));nodes.add(junctionKey(x+24,z));nodes.add(junctionKey(x,z+24));
  }
  for(const key of nodes){const [x,z]=key.split(',').map(Number);if(z>=0){if(z===0){const width=roadAt('z',x,-12).width;for(let across=-width/2+.3;across<width/2;across+=.65)box(x+across,.09,-5,.35,.025,1.4,'#f3f2e6');}continue;}const ns=roadAt('z',x,z),ew=roadAt('x',z,x),signals=signalized(x,z);
-  box(x,.055,z,ns.width,.025,ew.width,'#303a3d');
+  box(x,.055,z,ns.width,.025,ew.width,ASPHALT);
   for(const axis of ['x','z'] as Axis[]){const road=axis==='x'?ew:ns;const put=(along:number,across:number,y:number,length:number,width:number,height:number,c:string)=>axis==='x'?box(x+along,y,z+across,length,height,width,c):box(x+across,y,z+along,width,height,length,c);
-   for(const side of [-1,1]){for(let across=-road.width/2+.3;across<road.width/2;across+=.65)put(side*5,across,.09,1.4,.35,.025,'#f3f2e6');put(side*6.25,(axis==='x'?-side:side)*road.width/4,.09,.17,road.width/2-.15,.025,'#f5f1dc');
-    // Flat ramp at each zebra landing; tactile yellow pad makes the curb break clear.
-    for(const edge of [-1,1]){put(side*5,edge*(5.8+road.width/2)/2,.085,1.6,5.8-road.width/2,.09,'#c5c5b8');put(side*5,edge*(road.width/2+.2),.14,1.1,.35,.035,'#d1ad54');}
+   for(const side of [-1,1]){
+    // Painted crosswalks, stop lines and curb ramps only on arterial approaches.
+    if(road.arterial){for(let across=-road.width/2+.3;across<road.width/2;across+=.65)put(side*5,across,.09,1.4,.35,.025,'#f3f2e6');put(side*6.25,(axis==='x'?-side:side)*road.width/4,.09,.17,road.width/2-.15,.025,'#f5f1dc');
+     for(const edge of [-1,1]){put(side*5,edge*(5.8+road.width/2)/2,.085,1.6,5.8-road.width/2,.09,'#c5c5b8');put(side*5,edge*(road.width/2+.2),.14,1.1,.35,.035,'#d1ad54');}}
     const px=axis==='x'?x+side*5.9:x-side*5.9,pz=axis==='x'?z+side*5.9:z+side*5.9;
     box(px,1.8,pz,.12,3.6,.12,'#4a5754');
     if(signals){box(px,3.35,pz,.38,1.1,.35,'#27332e');out.lights.push({x,z,axis,p:[px,3.35,pz]});}

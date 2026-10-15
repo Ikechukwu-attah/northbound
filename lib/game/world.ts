@@ -13,7 +13,7 @@ const cells:Record<string,Point>={
 };
 export type WorldSpot=Spot&{district:DistrictId};
 const services:WorldSpot[]=[
- {id:'airport',name:'Pearson arrival desk',district:'etobicoke',kind:'service',x:-228,z:-204,color:'#b4bfbd',description:'Your first stop in the Toronto area. Work authorization is assumed for this game path.',activity:'Arrival information'},
+ {id:'airport',name:'Pearson Airport · Mississauga',district:'etobicoke',kind:'service',x:-228,z:-204,color:'#b4bfbd',description:'Toronto Pearson is in Mississauga, just outside Toronto. The UP Express runs from here to Union downtown. Work authorization is assumed for this game path.',activity:'Arrival information'},
  {id:'servicecanada',name:'Service Canada',district:'north-york',kind:'service',x:12,z:-276,color:'#bcc1b1',description:'Visit on a weekday to arrange your simulated SIN.',activity:'Documents & services'},
  {id:'bank',name:'Neighbourhood Credit Union',district:'toronto',kind:'service',x:-12,z:-60,color:'#9eaf9b',description:'Open an account, build credit and manage money.',activity:'Documents & services'},
  {id:'phone',name:'Neighbourhood Mobile',district:'toronto',kind:'service',x:-60,z:-60,color:'#c4a578',description:'Choose a monthly phone plan or repair your phone.',activity:'Documents & services'},

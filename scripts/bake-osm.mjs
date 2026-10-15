@@ -6,10 +6,10 @@ import {writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
 const BBOX=[43.58,-79.66,43.87,-79.11]; // S,W,N,E — covers all six former municipalities + Pearson.
+// Note: overpass.osm.ch is a Switzerland-only mirror (no Toronto data) and is omitted.
 const ENDPOINTS=[
  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
  'https://overpass-api.de/api/interpreter',
- 'https://overpass.osm.ch/api/interpreter',
  'https://overpass.kumi.systems/api/interpreter',
 ];
 const UA='northbound-osm-bake/1.0 (dev)';
@@ -87,33 +87,41 @@ const DISTRICT_FALLBACK={ // real former-municipality centres [lon,lat]
  'Old Toronto':[-79.3832,43.6532],'North York':[-79.4112,43.7615],'Scarborough':[-79.2318,43.7731],
  'Etobicoke':[-79.5665,43.6435],'York':[-79.4819,43.6896],'East York':[-79.3376,43.6907],
 };
+// Real former-municipality bounding boxes [minlon,minlat,maxlon,maxlat] (Old Toronto has no OSM relation).
+const DISTRICT_BBOX_FALLBACK={
+ 'Old Toronto':[-79.4425,43.628,-79.2769,43.7111],'North York':[-79.4822,43.7117,-79.3515,43.8],
+ 'Scarborough':[-79.2639,43.6817,-79.1159,43.8554],'Etobicoke':[-79.6392,43.5872,-79.4615,43.7599],
+ 'York':[-79.5272,43.6668,-79.4479,43.7117],'East York':[-79.3703,43.6668,-79.3008,43.7117],
+};
 
 async function main(){
  const [S,W,N,E]=BBOX,bbox=`${S},${W},${N},${E}`;
- console.log('1/3 subway stations…');
- const subEls=await overpass(`[out:json][timeout:60];node["railway"="station"]["station"="subway"](${bbox});out;`);
- const subway=new Map();
- for(const e of subEls){const c=coordOf(e);if(e.tags?.name&&c)subway.set(norm(e.tags.name),{c,id:'node/'+e.id,name:e.tags.name});}
- console.log(`   matched ${subway.size} named subway stations`);
+ console.log('1/4 subway stations…');
+ let subway=new Map();
+ for(let t=0;t<6&&subway.size<60;t++){if(t)await sleep(5000);const subEls=await overpass(`[out:json][timeout:60];node["railway"="station"]["station"="subway"](${bbox});out;`);const m=new Map();for(const e of subEls){const c=coordOf(e);if(e.tags?.name&&c)m.set(norm(e.tags.name),{c,id:'node/'+e.id,name:e.tags.name});}if(m.size>subway.size)subway=m;console.log(`   attempt ${t+1}: ${subway.size} named subway stations`);}
 
- console.log('2/3 named features…');
+ console.log('2/4 named features…');
  const names=Object.keys(FEATURES);
  const featQ=`[out:json][timeout:90];(`+names.map(n=>`nwr["name"="${n}"](${bbox});`).join('')+`);out center;`;
- const featEls=await overpass(featQ);
- const feats={};
- for(const e of featEls){const key=FEATURES[e.tags?.name];const c=coordOf(e);if(key&&c&&!feats[key])feats[key]={c,id:e.type+'/'+e.id,name:e.tags.name};}
+ let feats={};
+ for(let t=0;t<6;t++){if(t)await sleep(5000);const featEls=await overpass(featQ);const f={};for(const e of featEls){const key=FEATURES[e.tags?.name];const c=coordOf(e);if(key&&c&&!f[key])f[key]={c,id:e.type+'/'+e.id,name:e.tags.name};}if(Object.keys(f).length>Object.keys(feats).length)feats=f;console.log(`   attempt ${t+1}: ${Object.keys(feats).length}/${names.length} features`);if(names.every(n=>feats[FEATURES[n]]))break;}
  for(const [key,c]of Object.entries(FEATURE_FALLBACK))if(!feats[key])feats[key]={c,id:'fallback',name:key};
  const missing=Object.values(FEATURES).filter(k=>!feats[k]);
  console.log(`   matched ${Object.keys(feats).length}/${names.length+Object.keys(FEATURE_FALLBACK).length} features${missing.length?`; missing: ${missing.join(', ')}`:''}`);
 
- console.log('3/3 former-municipality boundaries…');
+ console.log('3/4 former-municipality boundaries (real bboxes)…');
+ const distQ=`[out:json][timeout:120];(`+DISTRICTS.map(n=>`relation["boundary"="administrative"]["name"="${n}"](${bbox});`).join('')+`);out bb;`;
  let districts={};
- try{
-  const distQ=`[out:json][timeout:90];(`+DISTRICTS.map(n=>`relation["boundary"="administrative"]["name"="${n}"](${bbox});`).join('')+`);out center bb;`;
-  const distEls=await overpass(distQ);
-  for(const e of distEls){const name=e.tags?.name;const c=coordOf(e);if(DISTRICTS.includes(name)&&c&&!districts[name])districts[name]={center:round(c),bbox:e.bounds?[e.bounds.minlon,e.bounds.minlat,e.bounds.maxlon,e.bounds.maxlat].map(v=>Math.round(v*1e5)/1e5):null,osm:e.type+'/'+e.id};}
- }catch(e){console.log('   boundaries fetch failed, using fallbacks:',e.message);}
- for(const name of DISTRICTS)if(!districts[name])districts[name]={center:DISTRICT_FALLBACK[name],bbox:null,osm:'fallback'};
+ for(let t=0;t<6&&Object.keys(districts).length<5;t++){if(t)await sleep(5000);try{const distEls=await overpass(distQ);for(const e of distEls){const name=e.tags?.name,b=e.bounds;if(DISTRICTS.includes(name)&&b&&!districts[name])districts[name]={bbox:[b.minlon,b.minlat,b.maxlon,b.maxlat].map(v=>Math.round(v*1e5)/1e5),center:round([(b.minlon+b.maxlon)/2,(b.minlat+b.maxlat)/2]),osm:e.type+'/'+e.id};}}catch(e){console.log('   boundaries attempt failed:',e.message);}console.log(`   attempt ${t+1}: ${Object.keys(districts).length} real boundaries`);}
+ for(const name of DISTRICTS)if(!districts[name])districts[name]={bbox:DISTRICT_BBOX_FALLBACK[name],center:DISTRICT_FALLBACK[name],osm:'fallback'}; // Old Toronto has no OSM relation
+
+ // Lake Ontario is a water polygon in OSM (not natural=coastline). Build a coarse
+ // shoreline profile from the real OSM waterfront feature coordinates, west→east,
+ // which includes Humber Bay and the Scarborough Bluffs.
+ console.log('4/4 Lake Ontario shoreline (from OSM waterfront features)…');
+ const shoreline=['sam_smith','humber_bay','harbourfront','bluffers']
+  .map(k=>feats[k]&&round(feats[k].c)).filter(Boolean).sort((a,b)=>a[0]-b[0]);
+ console.log(`   ${shoreline.length} shoreline anchor points`);
 
  const resolveStop=(id,m)=>{
   if(m.sub){const hit=subway.get(norm(m.sub));if(hit)return{c:round(hit.c),osm:hit.id};console.warn(`  ! subway miss: ${id} (${m.sub})`);}
@@ -135,12 +143,13 @@ async function main(){
  const out={
   meta:{source:'OpenStreetMap via Overpass',endpoints:ENDPOINTS,license:'ODbL-1.0',attribution:'© OpenStreetMap contributors',
    bbox:BBOX,fetchedAt:new Date().toISOString(),note:'Compressed game map; these real coords drive simulated distance/time only.'},
-  stops,places,districts,
+  stops,places,districts,shoreline,
  };
+ const complete=!unresolved.length&&shoreline.length>=4&&Object.keys(stops).length===Object.keys(STOP_MAP).length&&Object.keys(places).length===Object.keys(PLACE_MAP).length;
+ console.log(`\nstops=${Object.keys(stops).length}/${Object.keys(STOP_MAP).length} places=${Object.keys(places).length}/${Object.keys(PLACE_MAP).length} districts=${Object.keys(districts).length} shoreline=${shoreline.length}`);
+ if(!complete){console.error('Incomplete fetch; NOT overwriting geo.json. Retry.');if(unresolved.length)console.error('unresolved:',unresolved.join(', '));process.exit(1);}
  const dest=fileURLToPath(new URL('../data/osm/geo.json',import.meta.url));
  writeFileSync(dest,JSON.stringify(out,null,1)+'\n');
- console.log(`\nWrote ${dest}`);
- console.log(`stops=${Object.keys(stops).length}/${Object.keys(STOP_MAP).length} places=${Object.keys(places).length}/${Object.keys(PLACE_MAP).length} districts=${Object.keys(districts).length}`);
- if(unresolved.length){console.error('\nFAILED: unresolved anchors remain.');process.exit(1);}
+ console.log(`Wrote ${dest}`);
 }
 main().catch(e=>{console.error(e);process.exit(1);});

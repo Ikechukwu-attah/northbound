@@ -44,3 +44,17 @@ test('station-based journeys scale with real distance',()=>{
  assert.ok(transitRoute('finch','union').minutes>transitRoute('queen','union').minutes);
  assert.ok(transitRoute('kipling','kennedy').minutes>transitRoute('spadina','stgeorge').minutes);
 });
+
+test('district shapes and the Lake Ontario shoreline are baked from OSM',()=>{
+ assert.equal(Object.keys(geo.districts).length,6);
+ for(const d of ['North York','Scarborough','Etobicoke','York','East York','Old Toronto']){const g=geo.districts[d];assert.ok(g&&Array.isArray(g.bbox)&&g.bbox.length===4,d+' has a bbox');}
+ // Five former municipalities come from real OSM relations; only Old Toronto lacks one.
+ assert.ok(Object.values(geo.districts).filter(d=>d.osm.startsWith('relation/')).length>=5);
+ const ny=geo.districts['North York'].center,ot=geo.districts['Old Toronto'].center,yk=geo.districts['York'].center;
+ assert.ok(ny[1]>ot[1],'North York lies north of Old Toronto');
+ assert.ok(yk[0]<ot[0],'York lies west of Old Toronto');
+ // Shoreline runs west→east and includes Humber Bay and the (higher-latitude) Scarborough Bluffs.
+ assert.ok(geo.shoreline.length>=4);
+ assert.ok(geo.shoreline[geo.shoreline.length-1][0]>geo.shoreline[0][0],'shoreline ordered west to east');
+ assert.ok(geo.shoreline[geo.shoreline.length-1][1]>geo.shoreline[0][1],'Bluffs (east) sit at a higher latitude than the west end');
+});

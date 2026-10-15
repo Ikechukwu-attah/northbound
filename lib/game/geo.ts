@@ -8,7 +8,8 @@ export type LonLat=[number,number];
 type Anchor={c:LonLat;osm:string};
 const stops=geo.stops as unknown as Record<string,Anchor>;
 const places=geo.places as unknown as Record<string,Anchor>;
-export const districts=geo.districts as unknown as Record<string,{center:LonLat;bbox:number[]|null;osm:string}>;
+export const districts=geo.districts as unknown as Record<string,{center:LonLat;bbox:number[];osm:string}>;
+export const shoreline=geo.shoreline as unknown as LonLat[]; // Lake Ontario waterfront profile, west→east
 export const OSM_ATTRIBUTION=geo.meta.attribution as string; // "© OpenStreetMap contributors"
 export const OSM_META=geo.meta;
 

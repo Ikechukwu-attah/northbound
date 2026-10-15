@@ -39,11 +39,12 @@ TypeScript, production build and gameplay tests are checked. Automated visual br
 
 ## Map data
 
-Street names and order, district shapes, the Lake Ontario shoreline, parks,
-landmarks and TTC station positions are derived from **OpenStreetMap**. The map is
-rendered in a compressed, stylised form, but simulated travel distances and times
-use the real-world OpenStreetMap coordinates. Data is baked offline by
-`scripts/bake-osm.mjs` into `data/osm/` and is used under the Open Database License
+TTC station and place positions, the six former-municipality **district shapes**,
+the **Lake Ontario shoreline** (including the Scarborough Bluffs and Humber Bay), and
+all simulated **travel distances and times** are derived from **OpenStreetMap**. The
+rendered streets, their on-map names, and the 3D buildings are a compressed, stylised
+interpretation — **not** a literal OpenStreetMap street layout. Data is baked offline
+by `scripts/bake-osm.mjs` into `data/osm/` and is used under the Open Database License
 (ODbL) v1.0 (`data/osm/LICENSE`).
 
 > © OpenStreetMap contributors — https://www.openstreetmap.org/copyright
