@@ -5,7 +5,7 @@ const path=require('node:path');
 const ts=require('typescript');
 const THREE=require('three');
 const dest=path.resolve(__dirname,'../work/phase0-test');fs.mkdirSync(dest,{recursive:true});fs.writeFileSync(path.join(dest,'package.json'),'{"type":"commonjs"}');
-for(const file of ['ui','geo','engine','data','world','transit','life','calendar','characters']){const source=fs.readFileSync(path.resolve(__dirname,`../lib/game/${file}.ts`),'utf8');fs.writeFileSync(path.join(dest,`${file}.js`),ts.transpileModule(source,{compilerOptions:{esModuleInterop:true,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);}
+for(const file of fs.readdirSync(path.resolve(__dirname,'../lib/game')).filter(f=>f.endsWith('.ts')).map(f=>f.slice(0,-3))){const source=fs.readFileSync(path.resolve(__dirname,`../lib/game/${file}.ts`),'utf8');fs.writeFileSync(path.join(dest,`${file}.js`),ts.transpileModule(source,{compilerOptions:{esModuleInterop:true,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);}
 const {placeLabels,intersects,movementKey,blocksMovement,directionVector}=require('../work/phase0-test/ui.js');
 const {newGame,applyCommand}=require('../work/phase0-test/engine.js');
 const {DISTRICTS}=require('../work/phase0-test/data.js');

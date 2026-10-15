@@ -75,9 +75,9 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
   box(x+12,.02,z+12,12.6,.12,12.6,park?'#80a45f':parking?'#59615e':special?'#c9b99c':'#b9b28e');
   if(special){box(x+12,.12,z+16.8,10,.08,3.8,'#dfcbaa');tree(x+7,z+7,seed);tree(x+17,z+7,seed+1);}
   else if(park){box(x+12,.12,z+12,1.5,.06,12,'#d7c49d');for(const [a,b]of [[8,8],[16,9],[17,16],[8,16]])tree(x+a,z+b,seed+a);box(x+15,.6,z+15,2,.15,.7,'#a17b51');box(x+15,1,z+14.7,2,.6,.12,'#b58e61');}
-  else if(parking){for(let a=8;a<18;a+=2.4){box(x+a,.095,z+9,.08,.025,3.3,'#f1e5cb');box(x+a,.095,z+16,.08,.025,3.3,'#f1e5cb');}box(x+12,.095,z+7.4,11,.025,.08,'#f1e5cb');box(x+12,.095,z+17.6,11,.025,.08,'#f1e5cb');for(const a of [9,14]){box(x+a,.5,z+9,1.2,.65,2.4,a===9?'#a25543':'#c3c8bd');box(x+a,.95,z+9,1.05,.45,1.3,'#365660');}if(!dense){const pc=wall(3);box(x+12,1.7,z+19,12,3.1,3.4,pc);box(x+12,3.35,z+19,12.3,.4,3.7,'#d8cdb6');for(let a=-4.5;a<5;a+=2.2)box(x+12+a,1.5,z+20.6,1.6,1.4,.06,win(a,true));box(x+5.5,3.6,z+17.6,.4,3,.4,'#8a8f8c');box(x+5.5,5,z+17.6,2.1,1,.12,['#c2584a','#466a8a','#2f6d55'][seed%3]);}tree(x+18,z+12,seed);}
+  else if(parking){for(let a=8;a<18;a+=2.4){box(x+a,.095,z+9,.08,.025,3.3,'#f1e5cb');box(x+a,.095,z+16,.08,.025,3.3,'#f1e5cb');}box(x+12,.095,z+7.4,11,.025,.08,'#f1e5cb');box(x+12,.095,z+17.6,11,.025,.08,'#f1e5cb');for(const a of [9,14]){box(x+a,.5,z+9,1.2,.65,2.4,a===9?'#a25543':'#c3c8bd');box(x+a,.95,z+9,1.05,.45,1.3,'#365660');}if(!dense){const pc=wall(3);box(x+12,1.7,z+11.8,12,3.1,3.4,pc);box(x+12,3.35,z+11.8,12.3,.4,3.7,'#d8cdb6');for(let a=-4.5;a<5;a+=2.2)box(x+12+a,1.5,z+13.4,1.6,1.4,.06,win(a,true));box(x+5.5,3.6,z+17.6,.4,3,.4,'#8a8f8c');box(x+5.5,5,z+17.6,2.1,1,.12,['#c2584a','#466a8a','#2f6d55'][seed%3]);}tree(x+18,z+12,seed);}
   else if(dense){if(district==='toronto'){seed%4===0?tower(x+12,z+12,seed):seed%4===1?stone(x+12,z+12,seed):shopRow(x+12,z+12,seed);box(x+12,.105,z+16.5,12,.05,1.6,'#4a4f4d');}else{seed%3===0?slab(x+12,z+12,seed):tower(x+12,z+12,seed);}}
-  else {if(seed%6===0)slab(x+12,z+12,seed);else{for(const [hx,hz]of [[8.5,8.5],[15.5,8.5],[8.5,15.5],[15.5,15.5]] as const)house(x+hx,z+hz,seed+hx+hz);for(const dx of [8.5,15.5])box(x+dx,.1,z+12,1.6,.06,5,'#ccbfa6');}}
+  else {if(seed%6===0)slab(x+12,z+12,seed);else{for(const [hx,hz]of [[8.5,8.5],[15.5,8.5],[8.5,14.2],[15.5,14.2]] as const)house(x+hx,z+hz,seed+hx+hz);for(const dx of [8.5,15.5])box(x+dx,.1,z+12,1.6,.06,5,'#ccbfa6');}}
   for(const axis of ['x','z'] as Axis[]){const road=roadAt(axis,axis==='x'?z:x,axis==='x'?x:z);const put=(along:number,across:number,y:number,length:number,width:number,height:number,c:string)=>axis==='x'?box(x+along,y,z+across,length,height,width,c):box(x+across,y,z+along,width,height,length,c);
    put(12,0,-.01,24,road.width,.12,ASPHALT);for(const w of [6,18])put(w,((seed+w)%2?1:-1)*road.width/4,.055,2.6+seed%2,road.width/3,.03,WEAR[(seed+w)%3]);
    for(const side of [-1,1]){put(12,side*5,.13,14,1.45,.22,'#dbd7c8');put(12,side*(road.width/2+.1),.13,11,.18,.27,'#b9beb6');
@@ -95,8 +95,8 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
   box(x,.055,z,ns.width,.025,ew.width,ASPHALT);
   for(const axis of ['x','z'] as Axis[]){const road=axis==='x'?ew:ns;const put=(along:number,across:number,y:number,length:number,width:number,height:number,c:string)=>axis==='x'?box(x+along,y,z+across,length,height,width,c):box(x+across,y,z+along,width,height,length,c);
    for(const side of [-1,1]){
-    // Painted crosswalks, stop lines and curb ramps only on arterial approaches.
-    if(road.arterial){for(let across=-road.width/2+.3;across<road.width/2;across+=.65)put(side*5,across,.09,1.4,.35,.025,'#f3f2e6');put(side*6.25,(axis==='x'?-side:side)*road.width/4,.09,.17,road.width/2-.15,.025,'#f5f1dc');
+    // Mark every navigable crossing; local intersections retain stop signs.
+    {for(let across=-road.width/2+.3;across<road.width/2;across+=.65)put(side*5,across,.09,1.4,.35,.025,'#f3f2e6');put(side*6.25,(axis==='x'?-side:side)*road.width/4,.09,.17,road.width/2-.15,.025,'#f5f1dc');
      for(const edge of [-1,1]){put(side*5,edge*(5.8+road.width/2)/2,.085,1.6,5.8-road.width/2,.09,'#c5c5b8');put(side*5,edge*(road.width/2+.2),.14,1.1,.35,.035,'#d1ad54');}}
     const px=axis==='x'?x+side*5.9:x-side*5.9,pz=axis==='x'?z+side*5.9:z+side*5.9;
     box(px,1.8,pz,.12,3.6,.12,'#4a5754');

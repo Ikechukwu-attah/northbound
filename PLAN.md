@@ -142,3 +142,23 @@ District review: `roadAt` is now a gated arterial table — real arterials only 
 Hybrid finish: the Explore map is redrawn from OSM — real former-municipality bboxes (5 of 6 from OSM relations; Old Toronto has no relation), the Lake Ontario shoreline built from real waterfront features (Humber Bay, the Bluffs), and real TTC stop positions, all on a real lon/lat projection. `scripts/bake-osm.mjs` now also bakes the real **arterial street names per district** (all named primary/secondary/trunk ways, bucketed into each district's real OSM bbox — which drops neighbouring Vaughan/Markham — and ranked by length); `roads.ts` draws its in-world street signs from that baked data, selecting each street by identity and placing it on the compressed grid (core downtown/crosstown streets stay fixed for the pinned tests). So Scarborough shows Lawrence/Kennedy/Brimley, Etobicoke's lakeside is Lake Shore Blvd W, East York shows O'Connor/Pape, etc. The compressed grid *geometry* (which street sits on which block) remains a stylised design decision — the one part OSM cannot infer — and attribution says exactly that.
 
 Validation: TypeScript clean; **63 automated tests pass** (added `tests/review.test.cjs` ×5 and an OSM districts/shoreline test). Production build passes; server serves and the geo bake writes only on a complete fetch. No browser visual pass (control-browser skill unavailable).
+
+
+## Twelve-item fix pass + Claude branch integration — 15 October 2026
+
+Built on all three commits through `d9b460d` on `osm-hybrid-layer`; `main` was still `f33999f`. Both GitHub branches and the absence of open PRs were checked before reconciliation. Preserve that branch; deliver the combined work on a separate integration branch for review.
+
+1. Shared walkable sidewalk/crossing/forecourt mesh excludes water, carriageways outside crossings, buildings and prop footprints. Player routes and all crowd steps use it. Sidewalk-clearance tests cover the whole compressed city; suburban porches and strip plazas were inset to preserve the corridor.
+2. All visible people use the same glTF human renderer. No primitive far-crowd replacement. Preserve Claude's 8-phone/16-desktop visible crowd cap.
+3. Capsule clearance, keep-right passing lanes and swept movement prevent actor/prop penetration; NPCs yield, and player arrival waits for the visual journey. Cancellation records the actually completed walk fraction. Shelters stand off the walking corridor.
+4. Player movement follows connected sidewalk paths and marked crossings, including local street crossings. There is no direct point-to-point road crossing.
+5. Player and Maya/Dev/Amina portraits render the actual shared Human component and appearance; named world characters use those exact presets. Player has a brighter ground ring.
+6. One `travelEstimate` feeds place details, Explore, station access walks and the engine. Retain Claude's OSM-distance timing, including exhausted pace; fictional housing uses clearly described neighbourhood approximations. Actual street routes/headways remain a game simulation.
+7. NOAA/Meeus solar calculations use Toronto coordinates, each game date and America/Toronto DST. Dawn/dusk blend to night, with lit windows and lamp pools. October 15 sunset validates near 18:33, civil dusk near 19:02.
+8. Zero energy blocks further activity/travel until free rest; urgency blocks nonessential actions. Recovery remains reachable. Realistic open cafe/library/mall/community washrooms and TTC's listed stations expose bathroom actions. Retain Claude's sustained-need illness consequences.
+9. Preserve the geographic OSM overview and real TTC positions. Correct compressed North York/York regions and keep the Allen/University branch east of Humber through York University/Vaughan.
+10. Version 4 migration resets obsolete skills/training to the starting path once; keeps cash, appearance, story and in-progress paid journeys.
+11. Home type is capitalized; home navigation says Go home. Five fictional housing listings have distinct map addresses; view/apply/move require arrival there and moving updates the home destination.
+12. Place labels stay below the entire header and inside viewport insets, clear of the HUD/recovery banner.
+
+Validation: 77 automated tests, including all prior Claude OSM/review checks plus 13 fix-pass checks, two full 24-hour engine-day scenarios with desktop/390px layout constraints, swept collision simulation and city-wide mesh clearance. Run TypeScript and production build before packaging. These are automated domain/layout checks, not a browser playthrough. Managed browser QA remains unavailable: visual portrait framing, moving-crowd appearance, gestures and frame rate still require UI testing. Phase 3 remains paused for user review.

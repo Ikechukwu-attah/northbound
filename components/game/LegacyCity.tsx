@@ -4,7 +4,7 @@ import {OrbitControls} from '@react-three/drei';
 import {useEffect,useMemo,useRef,useState,Component,type ReactNode} from 'react';
 import * as THREE from 'three';
 import {districtById,type Spot,type DistrictId} from '@/lib/game/data';
-import {blocksFor,findPath,walkable,type Point} from '@/lib/game/navigation';
+import {blocksFor,findPath,walkable,type Point} from '@/lib/game/legacy-navigation';
 import {movementKey,blocksMovement,directionVector,type Direction} from '@/lib/game/ui';
 import {MapLabelOverlay,ProjectedLabels,type LabelRefs} from './MapLabels';
 

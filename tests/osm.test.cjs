@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),ts=require('typescript');
 const dest=path.resolve(__dirname,'../work/osm-test');fs.mkdirSync(dest,{recursive:true});fs.writeFileSync(path.join(dest,'package.json'),'{"type":"commonjs"}');
-for(const file of ['data','geo','world','transit'])fs.writeFileSync(path.join(dest,`${file}.js`),ts.transpileModule(fs.readFileSync(path.resolve(__dirname,`../lib/game/${file}.ts`),'utf8'),{compilerOptions:{esModuleInterop:true,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);
+for(const file of fs.readdirSync(path.resolve(__dirname,'../lib/game')).filter(f=>f.endsWith('.ts')).map(f=>f.slice(0,-3)))fs.writeFileSync(path.join(dest,`${file}.js`),ts.transpileModule(fs.readFileSync(path.resolve(__dirname,`../lib/game/${file}.ts`),'utf8'),{compilerOptions:{esModuleInterop:true,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);
 const {PLACES}=require('../work/osm-test/world.js');
 const {STOPS,LINES,transitRoute}=require('../work/osm-test/transit.js');
 const {stopGeo,placeGeo,placeMetres,stopMetres,haversineMetres,OSM_ATTRIBUTION}=require('../work/osm-test/geo.js');
@@ -17,7 +17,7 @@ test('baked OSM data is attributed and ODbL-licensed',()=>{
  assert.match(readme,/OpenStreetMap/);
 });
 
-test('every game place and TTC stop has a real Toronto coordinate',()=>{
+test('every destination has a geographic anchor (fictional homes use neighbourhood approximations)',()=>{
  for(const p of PLACES){const c=placeGeo(p.id);assert.ok(c,`place ${p.id} has geo`);assert.ok(inToronto(c),`${p.id} in Toronto bbox`);}
  for(const s of STOPS){const c=stopGeo(s.id);assert.ok(c,`stop ${s.id} has geo`);assert.ok(inToronto(c),`${s.id} in Toronto bbox`);}
 });

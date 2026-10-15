@@ -16,7 +16,12 @@ export const OSM_ATTRIBUTION=geo.meta.attribution as string; // "© OpenStreetMa
 export const OSM_META=geo.meta;
 
 export const stopGeo=(id:string):LonLat|null=>stops[id]?.c??null;
-export const placeGeo=(id:string):LonLat|null=>places[id]?.c??null;
+// These invented listing addresses use approximate neighbourhood anchors, not OSM features.
+const fictionalHomes:Record<string,{near:string;offset:LonLat}>={
+ 'listing-room':{near:'home',offset:[-.004,0]},'listing-basement':{near:'yorklibrary',offset:[.004,-.004]},
+ 'listing-apartment':{near:'nylibrary',offset:[.005,0]},'listing-two-bedroom':{near:'eymarket',offset:[0,-.01]},'listing-roommates':{near:'home',offset:[-.01,.01]}
+};
+export const placeGeo=(id:string):LonLat|null=>{const real=places[id]?.c;if(real)return real;const h=fictionalHomes[id],near=h&&places[h.near]?.c;return near?[near[0]+h.offset[0],near[1]+h.offset[1]]:null;};
 
 /** Great-circle distance in metres between two [lon,lat] points. */
 export function haversineMetres(a:LonLat,b:LonLat):number{

@@ -22,10 +22,10 @@ export function ProjectedLabels({refs,spots,selected,avatar}:{refs:LabelRefs;spo
   // Reserve the tag and the character immediately below it, even when labels are dense.
   const canvas=gl.domElement.getBoundingClientRect();
   const reserved=[{x:playerBox.x-10,y:playerBox.y-8,width:pw+20,height:ph+45}];
-  document.querySelectorAll<HTMLElement>('.topbar,.status-card,.place-panel,.mini-map,.bottom-nav,.chapter-card,.world-tools,.district-title,.journey-card,.toast,.movement-mode').forEach(el=>{const r=el.getBoundingClientRect();if(r.width&&r.height&&getComputedStyle(el).visibility!=='hidden')reserved.push({x:r.left-canvas.left,y:r.top-canvas.top,width:r.width,height:r.height});});
-  const positions=placeLabels(candidates,reserved,size);
+  document.querySelectorAll<HTMLElement>('.topbar,.status-card,.place-panel,.mini-map,.bottom-nav,.chapter-card,.world-tools,.district-title,.journey-card,.toast,.movement-mode,.critical-needs').forEach(el=>{const r=el.getBoundingClientRect();if(r.width&&r.height&&getComputedStyle(el).visibility!=='hidden')reserved.push({x:r.left-canvas.left,y:r.top-canvas.top,width:r.width,height:r.height});});
+  const header=document.querySelector('.topbar')?.getBoundingClientRect();const safeTop=Math.max(12,(header?.bottom??canvas.top)-canvas.top+12);const positions=placeLabels(candidates,reserved,size,{top:safeTop,bottom:16,left:12,right:12});
   refs.player.style.transform=`translate(${playerBox.x}px,${playerBox.y}px)`;
-  refs.player.style.visibility=anchor.visible?'visible':'hidden';
+  refs.player.style.visibility=anchor.visible&&playerBox.y>=safeTop&&playerBox.y+ph<size.height-16?'visible':'hidden';
   for(const [id,el] of refs.places){const box=positions[id];el.style.visibility=box?'visible':'hidden';if(box)el.style.transform=`translate(${box.x}px,${box.y}px)`;}
  });
  return null;

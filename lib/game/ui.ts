@@ -4,13 +4,13 @@ export type Rect = {x:number;y:number;width:number;height:number};
 export type LabelCandidate = Rect & {id:string;priority:number};
 export function intersects(a:Rect,b:Rect,gap=0){return a.x < b.x+b.width+gap && a.x+a.width+gap>b.x && a.y<b.y+b.height+gap && a.y+a.height+gap>b.y;}
 /** Keep the player clear; selected places get first choice. Hide excess labels instead of overlapping. */
-export function placeLabels(candidates:LabelCandidate[],reserved:Rect[],viewport:{width:number;height:number}){
+export function placeLabels(candidates:LabelCandidate[],reserved:Rect[],viewport:{width:number;height:number},safe={top:8,bottom:8,left:8,right:8}){
  const occupied=[...reserved];const result:Record<string,Rect>={};
  for(const label of [...candidates].sort((a,b)=>b.priority-a.priority||a.id.localeCompare(b.id))){
   if(label.x+label.width<0||label.x>viewport.width||label.y+label.height<0||label.y>viewport.height)continue;
   for(const [dx,dy] of [[0,0],[0,-36],[0,36],[-100,0],[100,0],[0,-72],[0,72],[-160,-36],[160,-36],[-240,0],[240,0],[-320,0],[320,0]]){
-   const box={x:Math.max(8,Math.min(viewport.width-label.width-8,label.x+dx)),y:label.y+dy,width:label.width,height:label.height};
-   if(box.y<8||box.y+box.height>viewport.height-8||box.width>viewport.width-16)continue;
+   const box={x:Math.max(safe.left,Math.min(viewport.width-label.width-safe.right,label.x+dx)),y:Math.max(safe.top,label.y+dy),width:label.width,height:label.height};
+   if(box.y<safe.top||box.y+box.height>viewport.height-safe.bottom||box.width>viewport.width-safe.left-safe.right)continue;
    if(occupied.some(other=>intersects(box,other,8)))continue;
    result[label.id]=box;occupied.push(box);break;
   }
