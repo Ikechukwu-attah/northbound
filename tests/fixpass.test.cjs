@@ -73,3 +73,40 @@ for(const width of [1440,390])test(`full 24-hour engine day and safe-area layout
 });
 
 test('a completed transit cancellation cannot inject a partial position off the navmesh',()=>{let s=fresh();s.position=t.stopById('queenwest').point;s.location='';s=act(s,'transit','nyc');const j=s.journey;const result=e.applyCommand(s,{type:'cancel',progress:.4},j.startedAt+j.seconds*1000+1,.5).state;assert.deepEqual(result.position,t.stopById('nyc').point);assert.ok(n.isWalkable(result.position));});
+
+test('walking follows turns at low frame rates without cutting corners or getting stuck',()=>{
+ const routes=[
+  [[-60,-29],[-29,-29],[-29,-317]],
+  [[-60,-29],[-29,-29],[-29,-5]],
+  [[-29,-317],[-29,-29],[-60,-29]],
+ ];
+ for(const path of routes)for(const increment of [.003,.01,.025]){
+  let position=n.lanePoint(path,0),fraction=0;
+  for(let frame=0;frame<1000&&fraction<1;frame++){
+   const next=n.advanceWalker(position,path,fraction,increment,[]);
+   assert.ok(next.fraction>fraction,`stalled at ${position} on ${JSON.stringify(path)} with step ${increment}`);
+   assert.ok(n.isWalkable(next.position));position=next.position;fraction=next.fraction;
+  }
+  assert.equal(fraction,1);
+ }
+ // A long frame must still yield to somebody on the incoming leg of a turn.
+ const path=routes[0],block=n.lanePoint(path,.05);
+ const stopped=n.advanceWalker(n.lanePoint(path,0),path,0,.5,[block]);
+ assert.ok(stopped.fraction<.05);assert.ok(w.distance(stopped.position,block)>=.68);
+});
+
+test('every ordered place pair completes at the renderer frame-time cap',()=>{
+ const base=fresh();
+ for(const from of w.PLACES)for(const to of w.PLACES){
+  if(from.id===to.id)continue;
+  const journey=act(at(base,from.id),'walk',to.id).journey;
+  let position=n.lanePoint(journey.path,0),fraction=0;
+  const increment=.06/(journey.seconds-journey.waitSeconds);
+  for(let frame=0;frame<50000&&fraction<1;frame++){
+   const next=n.advanceWalker(position,journey.path,fraction,increment,[]);
+   assert.ok(next.fraction>fraction,`${from.id} to ${to.id} stalled at ${position}`);
+   position=next.position;fraction=next.fraction;
+  }
+  assert.equal(fraction,1,`${from.id} to ${to.id}`);
+ }
+});

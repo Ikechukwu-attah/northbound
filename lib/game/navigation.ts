@@ -32,7 +32,12 @@ export function segmentWalkable(a:Point,b:Point){const n=Math.max(1,Math.ceil(di
 export function lanePoint(path:Point[],fraction:number):Point{
  const p=pointAlong(path,fraction),ahead=pointAlong(path,Math.min(1,fraction+.0001)),behind=pointAlong(path,Math.max(0,fraction-.0001));
  const dx=ahead[0]-behind[0],dz=ahead[1]-behind[1],n=Math.hypot(dx,dz)||1;
- const q:Point=[p[0]-dz/n*.36,p[1]+dx/n*.36];return isWalkable(q)?q:p;
+ const q:Point=[p[0]-dz/n*.36,p[1]+dx/n*.36];
+ // Leave the passing lane before reaching a footprint. Waiting until q is
+ // blocked makes the diagonal step back to the centre clip the obstacle.
+ const marginX=Math.abs(dx)/n*.8,marginZ=Math.abs(dz)/n*.8;
+ const tight=staticObstacles(q).some(o=>Math.abs(q[0]-o.x)<o.halfX+PERSON_RADIUS+marginX&&Math.abs(q[1]-o.z)<o.halfZ+PERSON_RADIUS+marginZ);
+ return !tight&&isWalkable(q)?q:p;
 }
 export type CrowdActor={id:string;path:Point[];progress:number;forward:boolean;wait:number;position:Point;heading:number;moving:boolean};
 export function clearOfPeople(p:Point,people:Point[],gap=PERSON_RADIUS*2+.04){return people.every(q=>distance(p,q)>=gap);}
@@ -50,4 +55,22 @@ export function stepCrowd(actors:CrowdActor[],dt:number,player:Point,playerAhead
  }
 }
 /** Shared swept-capsule movement used by the player renderer and regression simulations. */
-export function advanceWalker(current:Point,path:Point[],fraction:number,increment:number,people:Point[]){const nextFraction=Math.min(1,fraction+increment),next=lanePoint(path,nextFraction);const n=Math.max(1,Math.ceil(distance(current,next)/.2));const clear=Array.from({length:n},(_,i)=>{const t=(i+1)/n;return [current[0]+(next[0]-current[0])*t,current[1]+(next[1]-current[1])*t] as Point;}).every(p=>clearOfPeople(p,people));return segmentWalkable(current,next)&&clear?{position:next,fraction:nextFraction}:{position:current,fraction};}
+export function advanceWalker(current:Point,path:Point[],fraction:number,increment:number,people:Point[]){
+ const end=Math.min(1,fraction+Math.max(0,increment));
+ // Subdivide along the route, not the chord between frame endpoints. A long
+ // frame can straddle a turn; its chord would cut across an unwalkable block.
+ const steps=Math.max(1,Math.ceil((end-fraction)*pathLength(path)/.2));
+ let result={position:current,fraction};
+ for(let i=1;i<=steps;i++){
+  const nextFraction=i===steps?end:fraction+(end-fraction)*i/steps;
+  const next=lanePoint(path,nextFraction),samples=Math.max(1,Math.ceil(distance(result.position,next)/.2));
+  let clear=segmentWalkable(result.position,next);
+  for(let sample=1;clear&&sample<=samples;sample++){
+   const t=sample/samples;
+   clear=clearOfPeople([result.position[0]+(next[0]-result.position[0])*t,result.position[1]+(next[1]-result.position[1])*t],people);
+  }
+  if(!clear)break;
+  result={position:next,fraction:nextFraction};
+ }
+ return result;
+}

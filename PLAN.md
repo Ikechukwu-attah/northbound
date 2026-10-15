@@ -162,3 +162,19 @@ Built on all three commits through `d9b460d` on `osm-hybrid-layer`; `main` was s
 12. Place labels stay below the entire header and inside viewport insets, clear of the HUD/recovery banner.
 
 Validation: 77 automated tests, including all prior Claude OSM/review checks plus 13 fix-pass checks, two full 24-hour engine-day scenarios with desktop/390px layout constraints, swept collision simulation and city-wide mesh clearance. Run TypeScript and production build before packaging. These are automated domain/layout checks, not a browser playthrough. Managed browser QA remains unavailable: visual portrait framing, moving-crowd appearance, gestures and frame rate still require UI testing. Phase 3 remains paused for user review.
+
+### GitHub collaboration follow-up — 15 October 2026
+
+Workflow agreed with the user: fetch GitHub before editing, inspect Claude Code's branches and open PRs, make fixes on a GitHub-based checkout, and push them back for shared review. Re-fetch before pushing and use a non-forced update guarded by the expected branch head. Keep changes on the existing draft PR until UI review; Phase 3 remains paused.
+
+Started this pass from GitHub `codex/phase2-fix-pass` at `96e7313`, after fetching every branch and reading PR #1 and its discussion. `main` remained `f33999f`; Claude's `osm-hybrid-layer` remained `d9b460d`, already included in the PR. No newer Claude commits or review comments were present.
+
+Found and fixed two movement stalls in the shared navigation layer:
+- A frame spanning a turn checked the straight chord across a block. Movement now advances in small steps along the route and stops at the last collision-free step.
+- A passing lane returned to the centre only when an obstacle was already alongside the actor. Lane selection now leaves clearance ahead and behind footprints so the return does not clip a building edge.
+
+Regression coverage includes both turn directions, multiple frame increments, collision yielding during a long frame, and every ordered pair of the 43 places (1,806 routes) at the renderer's 60 ms frame cap. Before the fix, 422 of those routes stalled; after it, none stalled in the obstacle-only simulation. This does not certify crowd deadlock behaviour or browser frame rate.
+
+Handoff: this follow-up is GitHub-only, as requested. The hosted game still contains the prior fix-pass version until separately deployed. Desktop and 390px browser playthroughs, visual character/portrait checks, moving crowds, lighting and phone performance remain outstanding. Automated tests are not a replacement for that UI review.
+
+Follow-up validation: all 79 automated tests pass, TypeScript passes, production build passes, and `git diff --check` is clean. Re-fetched all GitHub branches immediately before push; the three heads above were unchanged.
