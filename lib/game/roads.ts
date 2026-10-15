@@ -46,7 +46,7 @@ export function signalAt(x:number,z:number,seconds:number,axis:Axis):'green'|'am
 export const signalized=(x:number,z:number)=>roadAt('z',x,z).arterial||roadAt('x',z,x).arterial;
 export type Piece={p:[number,number,number];s:[number,number,number];c:string;r?:number};
 export type Sign={x:number;y:number;z:number;name:string;axis:Axis};
-export type TileData={boxes:Piece[];trees:Piece[];stops:Piece[];signs:Sign[];lights:{x:number;z:number;axis:Axis;p:[number,number,number]}[];blocks:{x:number;z:number;kind:string}[]};
+export type TileData={boxes:Piece[];trees:Piece[];stops:Piece[];signs:Sign[];lights:{x:number;z:number;axis:Axis;p:[number,number,number]}[];blocks:{x:number;z:number;kind:string}[];ends:{x:number;z:number;kind:string}[]};
 // Medium charcoal carriageway under the pastel palette; wear shades patch it subtly.
 export const ASPHALT='#565b5f';
 const WEAR=['#4f5458','#5f6468','#52575b'];
@@ -54,7 +54,7 @@ const WEAR=['#4f5458','#5f6468','#52575b'];
 const PALETTES:Record<string,string[]>={toronto:['#b35e4a','#c77f52','#d8a24e','#8d93a0','#6f93a6','#c7b69a'],'north-york':['#8f9faa','#6f93a6','#c7b69a','#b9875f','#9aa17f','#cdbb98'],scarborough:['#c6a36a','#b7895f','#9aa585','#cdbfa0','#a88a6b','#8f9faa'],etobicoke:['#a9b5ac','#c6b185','#8fa6a0','#b58a68','#9fb0a6','#cdbfa0'],york:['#b86b4f','#c99a5e','#9c8f6f','#c7ad83','#8f7f6a','#b0a187'],'east-york':['#b5935f','#c9b074','#93a06f','#bca47c','#a98f66','#9aa17f']};
 const ROOFS=['#6b4a3b','#7a3f32','#5f6a63','#8a7a5a','#6d6256','#7f8a86'];
 export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
- const out:TileData={boxes:[],trees:[],stops:[],signs:[],lights:[],blocks:[]};
+ const out:TileData={boxes:[],trees:[],stops:[],signs:[],lights:[],blocks:[],ends:[]};
  const box=(x:number,y:number,z:number,w:number,h:number,d:number,c:string,r=0)=>out.boxes.push({p:[x,y,z],s:[w,h,d],c,r});
  const tree=(x:number,z:number,seed:number)=>{box(x,1.1,z,.17,2,.17,'#705c43');out.trees.push({p:[x,2.5,z],s:[1,1.3,1],c:['#7e9e60','#bb954d','#8aab66'][seed%3]});};
  const nodes=new Set<string>();
@@ -90,8 +90,22 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
    box(px,2.3,pz,.12,4.5,.12,'#485650');box(px+.5,4.5,pz,1.1,.1,.12,'#485650');box(px+.9,4.4,pz,.45,.12,.3,lightsOn?'#fff3c4':'#ffe6a3');box(px+2,.55,pz,.5,1,.5,'#496d54');box(px+3.2,.45,pz,.28,.8,.28,'#c85039');box(px+3.2,.6,pz,.65,.12,.2,'#d36341');tree(axis==='x'?x+17:x+5.8,axis==='x'?z+5.8:z+17,seed);
   }
   nodes.add(junctionKey(x,z));nodes.add(junctionKey(x+24,z));nodes.add(junctionKey(x,z+24));
+  // Shore cells (south neighbour is Lake Ontario): never let a grid street dead-end at the water.
+  if(cz===-1){
+   const shoreName=district==='etobicoke'?'Lake Shore Blvd W':district==='toronto'?(x+12<0?'Queens Quay W':'Queens Quay E'):null;
+   if(shoreName){
+    // Continuous waterfront road along the lake; N-S grid streets meet it at T-junctions.
+    box(x+12,-.01,-1.6,24,.12,3.4,ASPHALT);for(const s of [-1,1])box(x+12,.1,-1.6+s*1.85,24,.1,.26,'#b9beb6');box(x+12,.067,-1.6,24,.028,.06,'#efc755');
+    box(x+12,.12,-3.3,24,.06,1,'#dbd7c8'); // promenade strip between road and the beach
+    out.signs.push({x:x+6,y:4.1,z:-1.6,name:shoreName,axis:'x'});out.ends.push({x,z:-1.6,kind:'waterfront'});
+   }else{
+    // Scarborough: no road along the Bluffs — the street ends at a clifftop lookout with bollards.
+    box(x,.06,-3.2,5.6,.14,5,'#b9b28e');for(const b of [-1.8,0,1.8])box(x+b,.5,-1.1,.32,1,.32,'#9a9488');tree(x+3.4,z+21,seed);
+    out.ends.push({x,z:-3.2,kind:'lookout'});
+   }
+  }
  }
- for(const key of nodes){const [x,z]=key.split(',').map(Number);if(z>=0){if(z===0){const width=roadAt('z',x,-12).width;for(let across=-width/2+.3;across<width/2;across+=.65)box(x+across,.09,-5,.35,.025,1.4,'#f3f2e6');}continue;}const ns=roadAt('z',x,z),ew=roadAt('x',z,x),signals=signalized(x,z);
+ for(const key of nodes){const [x,z]=key.split(',').map(Number);if(z>=0)continue;const ns=roadAt('z',x,z),ew=roadAt('x',z,x),signals=signalized(x,z);
   box(x,.055,z,ns.width,.025,ew.width,ASPHALT);
   for(const axis of ['x','z'] as Axis[]){const road=axis==='x'?ew:ns;const put=(along:number,across:number,y:number,length:number,width:number,height:number,c:string)=>axis==='x'?box(x+along,y,z+across,length,height,width,c):box(x+across,y,z+along,width,height,length,c);
    for(const side of [-1,1]){

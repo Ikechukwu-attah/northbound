@@ -13,3 +13,14 @@ test('red light stops a vehicle before the zebra; green releases it',()=>{const 
 test('cars yield to a pedestrian in their lane and resume after the crossing clears',()=>{const v=car({at:10}),p=vehiclePoint(v);const pedestrians=[[15,p[1]]],reservations=new Map();for(let i=0;i<50;i++)stepTraffic([v],.05,i*.05,pedestrians,reservations);assert.ok(v.at<=12.71);assert.ok(v.halted);stepTraffic([v],.05,3,[],reservations);assert.ok(v.at>12.7);});
 test('queues keep a gap and stop-sign intersections pause before entering',()=>{const front=car({id:1,at:14,speed:0}),rear=car({at:10}),reservations=new Map();for(let i=0;i<50;i++)stepTraffic([front,rear],.05,i*.05,[],reservations);assert.ok(front.at-rear.at>=3.39);const local=car({road:-72,at:14,min:0,max:72});for(let i=0;i<20;i++)stepTraffic([local],.05,i*.05,[],new Map());assert.ok(local.at<=16.31);assert.ok(local.waitUntil>0);});
 test('phone traffic is capped and responds to rush hour and nighttime',()=>{assert.equal(trafficBudget(480,true,true),18);assert.equal(trafficBudget(480,false,true),36);assert.ok(trafficBudget(60,true,true)<trafficBudget(480,true,true));assert.ok(trafficBudget(720,true,true)<trafficBudget(480,true,true));assert.ok(trafficBudget(480,true,false)<trafficBudget(480,true,true));});
+test('no street dead-ends at the lake: every shore street terminates in a waterfront road or lookout',()=>{
+ for(const centre of [[-24,-48],[12,-12],[-192,-72],[-132,-12],[252,-12]]){
+  const cells=chunksAround(centre),d=makeRoadTiles(cells);
+  const shoreCx=[...new Set(cells.filter(c=>c[1]===-1).map(c=>c[0]))];
+  assert.ok(shoreCx.length>0,`centre ${centre} should include shore cells`);
+  for(const cx of shoreCx)assert.ok(d.ends.some(e=>Math.abs(e.x-cx*24)<1&&['waterfront','lookout','culdesac'].includes(e.kind)),`shore street x=${cx*24} must terminate (centre ${centre})`);
+ }
+ // Inland districts (East York ravine, York river at Weston, North York) have no shore cells and
+ // no missing-cell gaps, so no grid street dead-ends there.
+ for(const centre of [[108,-144],[-108,-192],[0,-360]])assert.equal(chunksAround(centre).filter(c=>c[1]===-1).length,0);
+});
