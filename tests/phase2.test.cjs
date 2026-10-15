@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),ts=require('typescript');
 const dest=path.resolve(__dirname,'../work/phase2-test');fs.mkdirSync(dest,{recursive:true});fs.writeFileSync(path.join(dest,'package.json'),'{"type":"commonjs"}');
-for(const file of ['data','engine','world','transit','ui','life','calendar','characters','crowds'])fs.writeFileSync(path.join(dest,`${file}.js`),ts.transpileModule(fs.readFileSync(path.resolve(__dirname,`../lib/game/${file}.ts`),'utf8'),{compilerOptions:{esModuleInterop:true,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);
+for(const file of ['data','geo','engine','world','transit','ui','life','calendar','characters','crowds'])fs.writeFileSync(path.join(dest,`${file}.js`),ts.transpileModule(fs.readFileSync(path.resolve(__dirname,`../lib/game/${file}.ts`),'utf8'),{compilerOptions:{esModuleInterop:true,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);
 const {newGame,applyCommand,migrateState}=require('../work/phase2-test/engine.js');
 const {ECONOMY:E,PATHS,ROLES,advanceLife,payroll}=require('../work/phase2-test/life.js');
 const {entrance,placeById}=require('../work/phase2-test/world.js');

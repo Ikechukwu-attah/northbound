@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),ts=require('typescript');
 const dest=path.resolve(__dirname,'../work/test-build');fs.mkdirSync(dest,{recursive:true});fs.writeFileSync(path.join(dest,'package.json'),'{"type":"commonjs"}');
-for(const file of ['data','engine','navigation','world','transit','ui','life','calendar','characters','crowds'])fs.writeFileSync(path.join(dest,`${file}.js`),ts.transpileModule(fs.readFileSync(path.resolve(__dirname,`../lib/game/${file}.ts`),'utf8'),{compilerOptions:{esModuleInterop:true,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);
+for(const file of ['data','geo','engine','navigation','world','transit','ui','life','calendar','characters','crowds'])fs.writeFileSync(path.join(dest,`${file}.js`),ts.transpileModule(fs.readFileSync(path.resolve(__dirname,`../lib/game/${file}.ts`),'utf8'),{compilerOptions:{esModuleInterop:true,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);
 const {newGame,applyCommand,day,migrateState,isNear,fareFor}=require('../work/test-build/engine.js');
 const {DISTRICTS}=require('../work/test-build/data.js');
 const {PLACES,entrance,walkingPath,pathLength,pointAlong,onSidewalk,walkMinutes,chunksAround,placeById,districtAt}=require('../work/test-build/world.js');

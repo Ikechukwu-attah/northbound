@@ -37,9 +37,21 @@ The test suite exercises purchases, wages, promotions, needs, rent, recovery fro
 
 TypeScript, production build and gameplay tests are checked. Automated visual browser QA is unavailable in this environment; desktop and mobile presentation and live authenticated gameplay still need a hands-on pass.
 
+## Map data
+
+Street names and order, district shapes, the Lake Ontario shoreline, parks,
+landmarks and TTC station positions are derived from **OpenStreetMap**. The map is
+rendered in a compressed, stylised form, but simulated travel distances and times
+use the real-world OpenStreetMap coordinates. Data is baked offline by
+`scripts/bake-osm.mjs` into `data/osm/` and is used under the Open Database License
+(ODbL) v1.0 (`data/osm/LICENSE`).
+
+> © OpenStreetMap contributors — https://www.openstreetmap.org/copyright
+
 ## City references
 
 - https://www.destinationtoronto.com/neighbourhoods/
 - https://www.ttc.ca/
 
-An independent fictional game, not affiliated with the City of Toronto or TTC.
+An independent fictional game, not affiliated with the City of Toronto, the TTC, or
+the OpenStreetMap Foundation.

@@ -3,7 +3,7 @@ export type Axis='x'|'z';
 export type Road={axis:Axis;coordinate:number;name:string;lanes:2|4|6;width:number;laneWidth:number;tracks:boolean;bike:boolean;arterial:boolean};
 // Compressed game corridors, aligned to the persistent 24-unit city grid.
 export function roadAt(axis:Axis,coordinate:number,along=0):Road{
- const names:Record<number,string>=axis==='z'?{0:'Yonge St',[-48]:'Spadina Ave'}:{[-96]:along<0?'Bloor St W':'Bloor St E',[-48]:along<0?'Queen St W':'Queen St E',[-24]:along<0?'King St W':'King St E',[-192]:along<0?'Eglinton Ave W':'Eglinton Ave E',[-312]:along<0?'Sheppard Ave W':'Sheppard Ave E'};
+ const names:Record<number,string>=axis==='z'?{0:'Yonge St',[-24]:'University Ave',[-48]:'Spadina Ave'}:{[-96]:along<0?'Bloor St W':'Bloor St E',[-48]:along<0?'Queen St W':'Queen St E',[-24]:along<0?'King St W':'King St E',[-192]:along<0?'Eglinton Ave W':'Eglinton Ave E',[-312]:along<0?'Sheppard Ave W':'Sheppard Ave E'};
  const name=names[coordinate]||'Local street',arterial=!!names[coordinate]&&(axis==='x'||coordinate===0||along>=-120);const lanes=arterial?(axis==='x'&&[-192,-312].includes(coordinate)?6:4):2;const laneWidth=lanes===6?1.4:1.6;
  return {axis,coordinate,name:arterial?name:'Local street',lanes,width:lanes*laneWidth,laneWidth,arterial,tracks:arterial&&(axis==='x'?[-48,-24].includes(coordinate):coordinate===-48&&along>=-120),bike:arterial&&(axis==='x'?coordinate===-96:coordinate===0)};
 }

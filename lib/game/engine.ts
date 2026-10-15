@@ -1,7 +1,8 @@
 import {initialLife,advanceLife,lifeAction,ECONOMY,PATHS,type LifeState,type PathId} from './life';
 import {type Appearance} from './characters';
 import { PEOPLE,type DistrictId,type Need } from './data';
-import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,districtAt,nearbyPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
+import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,districtAt,nearbyPlace,nearestPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
+import {placeGeo,stopGeo,haversineMetres} from './geo';
 import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES} from './transit';
 export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number};
 
@@ -9,6 +10,10 @@ export type GameState={version:3;life:LifeState;position:Point;visitedPlaces:str
 export type Command={type:string;id?:string;name?:string;color?:string;skin?:string;point?:Point;mode?:string;path?:PathId;appearance?:Partial<Appearance>};
 export const COLORS=['#ce7551','#4f7f72','#6f86a4','#9b799c','#d7a44c'];
 export const SKINS=['#e3b88e','#b87e56','#764a35','#f1d3b5'];
+// Travel time comes from real OSM distances (metres per game-minute) while the map stays compressed.
+const SPEED_WALK=80,SPEED_BIKE=250;
+const anchorFrom=(s:GameState):Point|null=>placeGeo(s.location)||placeGeo(nearestPlace(s.position).id);
+const realMinutes=(from:Point|null,to:Point|null,bike:boolean):number|null=>from&&to?Math.max(1,Math.ceil(haversineMetres(from,to)/(bike?SPEED_BIKE:SPEED_WALK))):null;
 export function newGame(c:Command):GameState{
  if(c.path&&!PATHS.some(p=>p.id===c.path))throw new Error('Choose a valid starting path.');
  const name=(c.name||'').trim();if(!name||name.length>22)throw new Error('Choose a name between 1 and 22 characters.');
@@ -45,7 +50,7 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   if(bike&&(s.needs.energy<20||s.needs.bladder<15))throw new Error('Too exhausted or uncomfortable to cycle. Walk to a bathroom or a place to rest.');
   if(bike&&!s.bike)throw new Error('Explore three districts to unlock the community loan bike.');
   if(length<.1)throw new Error('You are already here.');
-  s.journey={kind:bike?'bike':'walk',path,startedAt:now,seconds:Math.max(.3,Math.min(90,length/(bike?12:s.needs.energy<20?3.5:7))),minutes:walkMinutes(path,bike)*(!bike&&s.needs.energy<20?2:1),label:destination?.name||stop?.name||'Selected sidewalk',detail:bike?'Cycling via connected streets':'Walking via sidewalks and crossings',destination:destination?.id,waitSeconds:0};message=`${bike?'Cycling':'Walking'} to ${s.journey.label}.`;break;
+  s.journey={kind:bike?'bike':'walk',path,startedAt:now,seconds:Math.max(.3,Math.min(90,length/(bike?12:s.needs.energy<20?3.5:7))),minutes:(realMinutes(anchorFrom(s),destination?placeGeo(destination.id):stop?stopGeo(stop.id):null,bike)??walkMinutes(path,bike))*(!bike&&s.needs.energy<20?2:1),label:destination?.name||stop?.name||'Selected sidewalk',detail:bike?'Cycling via connected streets':'Walking via sidewalks and crossings',destination:destination?.id,waitSeconds:0};message=`${bike?'Cycling':'Walking'} to ${s.journey.label}.`;break;
  }
  case 'transit':case 'fast':{
   const targetPlace=c.type==='fast'?placeById(c.id||''):undefined;
@@ -58,14 +63,16 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   const route=from.id===to.id?{minutes:0,legs:[]}:transitRoute(from.id,to.id);
   const before=c.type==='fast'?walkingPath(s.position,from.point):[s.position,from.point];
   const after=targetPlace?walkingPath(to.point,entrance(targetPlace)):[to.point];
-  const tapMinutes=s.minutes+(c.type==='fast'&&pathLength(before)>0?walkMinutes(before):0);
+  const beforeMin=c.type==='fast'?(realMinutes(anchorFrom(s),stopGeo(from.id),false)??(pathLength(before)>0?walkMinutes(before):0)):0;
+  const afterMin=targetPlace?(realMinutes(stopGeo(to.id),placeGeo(targetPlace.id),false)??(pathLength(after)>0?walkMinutes(after):0)):0;
+  const tapMinutes=s.minutes+beforeMin;
   const nightBus=!serviceOpen(tapMinutes);
   const cost=fareFor({...s,minutes:tapMinutes});spend(s,cost);
   if(s.fareMonth!==fareMonth(tapMinutes)){s.fareMonth=fareMonth(tapMinutes);s.paidFares=0;}
   if(cost){s.transferUntil=tapMinutes+FARE.transferMinutes;s.paidFares++;}
   s.tripCount++;const disrupted=roll<.1;const shuttle=disrupted&&route.legs.some(l=>LINES.find(x=>x.id===l.line)?.mode==='subway');
   const delay=(disrupted?(shuttle?15:7):0)+(nightBus?20:0);
-  const minutes=route.minutes+(pathLength(before)>0?walkMinutes(before):0)+(pathLength(after)>0?walkMinutes(after):0)+delay;
+  const minutes=route.minutes+beforeMin+afterMin+delay;
   const lines=[...new Set(route.legs.map(l=>LINES.find(x=>x.id===l.line)!.name))];
   s.journey={kind:c.type==='fast'?'fast':'transit',path:[...before,...route.legs.map(l=>stopById(l.to)!.point),...after],startedAt:now,seconds:7+(disrupted?3:0),waitSeconds:2,minutes:Math.max(1,minutes),label:targetPlace?.name||to.name,destination:targetPlace?.id,detail:`${nightBus?'Blue Night bus replacement · ':''}${lines.join(' → ')||'Local connection'} · ${cost?'$3.30 tap':s.minutes<s.transferUntil?'Transfer included':'Monthly cap reached'}${disrupted?shuttle?' · Simulated closure: shuttle bus +15 min':' · Simulated traffic delay +7 min':''}`};message=`TTC journey started. ${s.journey.detail}`;break;
  }
