@@ -1,0 +1,11 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const ts=require('typescript');
+const dest=path.resolve(__dirname,'../work/guest-test');fs.mkdirSync(dest,{recursive:true});fs.writeFileSync(path.join(dest,'package.json'),'{"type":"commonjs"}');
+const source=fs.readFileSync(path.resolve(__dirname,'../lib/game/guest.ts'),'utf8');fs.writeFileSync(path.join(dest,'guest.js'),ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText);
+const {guestIdentity}=require('../work/guest-test/guest.js');
+test('new anonymous browsers get separate save identities',async()=>{const a=await guestIdentity(null),b=await guestIdentity(null);assert.notEqual(a.userId,b.userId);assert.match(a.userId,/^guest:[a-f0-9]{64}$/);assert.match(a.cookie,/HttpOnly; Secure; SameSite=Lax/);assert.ok(!a.cookie.includes(a.userId.slice(6)));});
+test('returning browser keeps its save identity after reload',async()=>{const a=await guestIdentity(null);const b=await guestIdentity('preference=yes; '+a.cookie.split(';')[0]);assert.equal(a.userId,b.userId);assert.equal(a.cookie,b.cookie);});
+test('malformed or guessed account IDs cannot select an account save',async()=>{const a=await guestIdentity('northbound-guest=account-user-id');assert.match(a.userId,/^guest:[a-f0-9]{64}$/);assert.ok(!a.cookie.includes('account-user-id'));});

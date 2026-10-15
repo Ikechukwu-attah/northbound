@@ -1,0 +1,9 @@
+'use client';
+import {useRef} from 'react';
+import {useFrame,useThree} from '@react-three/fiber';
+import * as THREE from 'three';
+import {Box,Cylinder} from './CityAssets';
+import Human from './Human';
+import {npcAppearance} from '@/lib/game/characters';
+import type {GameState} from '@/lib/game/engine';
+export default function TransitScene({game}:{game:GameState}){const {camera,size}=useThree();const stripes=useRef<THREE.Group>(null);useFrame(({clock})=>{camera.position.set(10,7,12);camera.lookAt(0,2,0);if(camera instanceof THREE.OrthographicCamera){camera.zoom=Math.min(size.width/18,size.height/15);camera.updateProjectionMatrix();}if(stripes.current)stripes.current.position.x=(clock.elapsedTime*7)%4;});const waiting=Date.now()<game.journey!.startedAt+game.journey!.waitSeconds*1000;return <><color attach="background" args={['#dce1d7']}/><ambientLight intensity={1.8}/><directionalLight position={[4,8,5]} intensity={2}/><Box p={[0,-.15,0]} s={[18,.3,9]} c="#858f8b"/><Box p={[0,2,-3.5]} s={[18,4,.3]} c="#e4e2d7"/><Box p={[0,3.6,-3.28]} s={[18,.2,.1]} c="#b9483d"/>{[-6,-2,2,6].map(x=><group key={x}><Box p={[x,2.3,-3.27]} s={[3,1.7,.12]} c="#263c43"/><Box p={[x,.8,-2.8]} s={[3,.35,1.2]} c="#b64d42"/><Box p={[x,1.3,-3.1]} s={[3,.8,.2]} c="#bc5447"/></group>)}<group ref={stripes}>{[-12,-8,-4,0,4,8].map(x=><Box key={x} p={[x,2.3,-3.16]} s={[.12,1.4,.03]} c="#5c767b"/>)}</group>{[-4,4].map(x=><Cylinder key={x} p={[x,2,0]} r={.05} h={4} c="#bdc9c4"/>)}<group position={[0,0,0]}><Human appearance={game.life.appearance} action={waiting?'wait':'phone'} minutes={game.minutes}/></group><group position={[-4.5,0,-1.5]}><Human appearance={npcAppearance(241)} action="sit" minutes={game.minutes} scale={1.7}/></group><group position={[4,0,-1]}><Human appearance={npcAppearance(98)} action="coffee" minutes={game.minutes} scale={1.7}/></group></>}

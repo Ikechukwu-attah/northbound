@@ -1,0 +1,85 @@
+import {initialLife,advanceLife,lifeAction,ECONOMY,PATHS,type LifeState,type PathId} from './life';
+import {type Appearance} from './characters';
+import { PEOPLE,type DistrictId,type Need } from './data';
+import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,districtAt,nearbyPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
+import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES} from './transit';
+export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number};
+
+export type GameState={version:3;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
+export type Command={type:string;id?:string;name?:string;color?:string;skin?:string;point?:Point;mode?:string;path?:PathId;appearance?:Partial<Appearance>};
+export const COLORS=['#ce7551','#4f7f72','#6f86a4','#9b799c','#d7a44c'];
+export const SKINS=['#e3b88e','#b87e56','#764a35','#f1d3b5'];
+export function newGame(c:Command):GameState{
+ if(c.path&&!PATHS.some(p=>p.id===c.path))throw new Error('Choose a valid starting path.');
+ const name=(c.name||'').trim();if(!name||name.length>22)throw new Error('Choose a name between 1 and 22 characters.');
+ const s={version:3,position:entrance(placeById('queen')!),visitedPlaces:['queen','home'],journey:null,transferUntil:0,fareMonth:fareMonth(540),paidFares:0,tripCount:0,bike:false,name,color:COLORS.includes(c.color||'')?c.color!:COLORS[0],skin:SKINS.includes(c.skin||'')?c.skin!:SKINS[1],district:'toronto',location:'queen',cash:ECONOMY.startingCash.legacy,earned:0,minutes:540,needs:{energy:90,hunger:75,fun:80,social:65,hygiene:90,bladder:90},job:'barista',shifts:0,skill:0,home:'room',visited:['toronto'],friends:{},log:[{text:'Welcome to Toronto.',day:1}],rewards:[]} as unknown as GameState; s.life=initialLife(s,c.path||'local',c.appearance);s.skin=s.life.appearance.skin;s.color=s.life.appearance.color;return s;
+}
+export function day(s:GameState){return Math.floor(s.minutes/1440)+1;}
+function log(s:GameState,text:string){s.log=[{text,day:day(s)},...s.log].slice(0,50);}
+function spend(s:GameState,cost:number){if(cost>0&&s.cash<cost)throw new Error('You need a little more money. Pick up a shift or try a free activity.');s.cash-=cost;}
+function advance(s:GameState,m:number){advanceLife(s,m);}
+function boost(s:GameState,n:Partial<Record<Need,number>>){for(const k of Object.keys(n) as Need[])s.needs[k]=Math.min(100,s.needs[k]+n[k]!);}
+function checkGoals(s:GameState){const notifications:string[]=[];const goals=[['shift',s.shifts>=1,'First shift recorded'],['explore',s.visited.length>=3,'City explorer — community bicycle unlocked'],['friends',Object.values(s.friends).some(v=>v>=3),'A familiar face'],['home',s.home==='apartment','A place of your own']] as const;for(const [id,ok,title] of goals)if(ok&&!s.rewards.includes(id)){s.rewards.push(id);log(s,'Milestone: '+title);notifications.push('Milestone: '+title);}return notifications;}
+
+export function migrateState(value:unknown):GameState{
+ const old=structuredClone(value) as GameState;
+ if((old.version as number)===1){const p=placeById(old.location)||placeById('queen')!;Object.assign(old,{version:2,position:entrance(p),district:p.district,location:p.id,visitedPlaces:Array.from(new Set([p.id,'home'])),journey:null,transferUntil:0,fareMonth:fareMonth(old.minutes),paidFares:0,tripCount:0,bike:old.visited.length>=3});}
+ if(!old.life)old.life=initialLife(old,'legacy',undefined,true);old.version=3;return old;
+}
+export function isNear(s:GameState,id:string){const p=placeById(id);return !s.journey&&!!p&&distance(s.position,entrance(p))<=3;}
+function requirePlace(s:GameState,id:string){if(!isNear(s,id))throw new Error(`Walk to ${placeById(id)?.name||'the location'} first. Activities require you to be there.`);}
+function settlePosition(s:GameState,p:Point){s.position=p;s.district=districtAt(p);const place=nearbyPlace(p);s.location=place?.id||'';if(place){s.district=place.district;if(!s.visitedPlaces.includes(place.id))s.visitedPlaces.push(place.id);}if(!s.visited.includes(s.district))s.visited.push(s.district);s.bike=s.bike||s.visited.length>=3;}
+export function journeyFraction(j:Journey,now=Date.now()){return Math.max(0,Math.min(1,(now-j.startedAt-j.waitSeconds*1000)/((j.seconds-j.waitSeconds)*1000)));}
+export function journeyPosition(j:Journey,now=Date.now()):Point{return pointAlong(j.path,journeyFraction(j,now));}
+export function fareFor(s:GameState){return s.minutes<s.transferUntil||(s.fareMonth===fareMonth(s.minutes)&&s.paidFares>=FARE.monthlyCap)?0:FARE.adult;}
+export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Math.random()):{state:GameState;message:string;notifications:string[]}{
+ const s=migrateState(original);let message='';const spot=placeById(s.location);
+ if(s.journey&&!['arrive','cancel'].includes(c.type))throw new Error('Finish your journey before taking another action.');
+ const action=lifeAction(s,c);if(action!==null){log(s,action);const notifications=[action,...checkGoals(s)];return {state:s,message:action,notifications};}
+ switch(c.type){
+ case 'walk':case 'visit':{
+  const destination=c.id?placeById(c.id):undefined;const stop=c.id?stopById(c.id.replace('stop:','')):undefined;
+  const target:Point|undefined=destination?entrance(destination):stop?.point||c.point;
+  if(!target||!Array.isArray(target)||target.length!==2||!onSidewalk(target))throw new Error('Choose a valid sidewalk, place or stop.');
+  const path=walkingPath(s.position,target),length=pathLength(path),bike=c.mode==='bike';
+  if(bike&&(s.needs.energy<20||s.needs.bladder<15))throw new Error('Too exhausted or uncomfortable to cycle. Walk to a bathroom or a place to rest.');
+  if(bike&&!s.bike)throw new Error('Explore three districts to unlock the community loan bike.');
+  if(length<.1)throw new Error('You are already here.');
+  s.journey={kind:bike?'bike':'walk',path,startedAt:now,seconds:Math.max(.3,Math.min(90,length/(bike?12:s.needs.energy<20?3.5:7))),minutes:walkMinutes(path,bike)*(!bike&&s.needs.energy<20?2:1),label:destination?.name||stop?.name||'Selected sidewalk',detail:bike?'Cycling via connected streets':'Walking via sidewalks and crossings',destination:destination?.id,waitSeconds:0};message=`${bike?'Cycling':'Walking'} to ${s.journey.label}.`;break;
+ }
+ case 'transit':case 'fast':{
+  const targetPlace=c.type==='fast'?placeById(c.id||''):undefined;
+  if(c.type==='fast'&&(!targetPlace||!s.visitedPlaces.includes(targetPlace.id)))throw new Error('Fast travel is only available to places you have visited.');
+  const from=nearestStop(s.position),to=targetPlace?nearestStop(entrance(targetPlace)):stopById(c.id||'');
+  if(!to)throw new Error('Choose your exit stop.');
+  if(c.type==='transit'&&distance(s.position,from.point)>3)throw new Error(`Walk to ${from.name} before boarding.`);
+  
+  if(from.id===to.id&&c.type==='transit')throw new Error('Choose a different exit stop.');
+  const route=from.id===to.id?{minutes:0,legs:[]}:transitRoute(from.id,to.id);
+  const before=c.type==='fast'?walkingPath(s.position,from.point):[s.position,from.point];
+  const after=targetPlace?walkingPath(to.point,entrance(targetPlace)):[to.point];
+  const tapMinutes=s.minutes+(c.type==='fast'&&pathLength(before)>0?walkMinutes(before):0);
+  const nightBus=!serviceOpen(tapMinutes);
+  const cost=fareFor({...s,minutes:tapMinutes});spend(s,cost);
+  if(s.fareMonth!==fareMonth(tapMinutes)){s.fareMonth=fareMonth(tapMinutes);s.paidFares=0;}
+  if(cost){s.transferUntil=tapMinutes+FARE.transferMinutes;s.paidFares++;}
+  s.tripCount++;const disrupted=roll<.1;const shuttle=disrupted&&route.legs.some(l=>LINES.find(x=>x.id===l.line)?.mode==='subway');
+  const delay=(disrupted?(shuttle?15:7):0)+(nightBus?20:0);
+  const minutes=route.minutes+(pathLength(before)>0?walkMinutes(before):0)+(pathLength(after)>0?walkMinutes(after):0)+delay;
+  const lines=[...new Set(route.legs.map(l=>LINES.find(x=>x.id===l.line)!.name))];
+  s.journey={kind:c.type==='fast'?'fast':'transit',path:[...before,...route.legs.map(l=>stopById(l.to)!.point),...after],startedAt:now,seconds:7+(disrupted?3:0),waitSeconds:2,minutes:Math.max(1,minutes),label:targetPlace?.name||to.name,destination:targetPlace?.id,detail:`${nightBus?'Blue Night bus replacement · ':''}${lines.join(' → ')||'Local connection'} · ${cost?'$3.30 tap':s.minutes<s.transferUntil?'Transfer included':'Monthly cap reached'}${disrupted?shuttle?' · Simulated closure: shuttle bus +15 min':' · Simulated traffic delay +7 min':''}`};message=`TTC journey started. ${s.journey.detail}`;break;
+ }
+ case 'arrive':case 'cancel':{
+  const j=s.journey;if(!j)throw new Error('There is no journey to finish.');
+  const finished=now>=j.startedAt+j.seconds*1000;
+  if(c.type==='arrive'&&!finished)throw new Error('You are still on your way.');
+  if(c.type==='cancel'&&!finished&&j.kind!=='walk'&&j.kind!=='bike')throw new Error('Stay aboard until your selected stop.');
+  const fraction=finished?1:journeyFraction(j,now),p=finished?j.path[j.path.length-1]:pointAlong(j.path,fraction);
+  advance(s,finished?j.minutes:Math.max(0,Math.ceil(j.minutes*fraction)));s.journey=null;settlePosition(s,p);
+  message=finished?`Arrived at ${j.label}. ${j.minutes} game minutes travelled.`:'Walk paused. Your position and elapsed travel time are saved.';break;
+ }
+ case 'travel':throw new Error('Use Explore to find a visible TTC stop. District teleporting has been retired.');
+ case 'talk':{const p=PEOPLE.find(p=>p.id===c.id);if(!p)throw new Error('Choose someone to talk to.');requirePlace(s,PERSON_PLACES[p.id]);s.life.animation='talk';s.life.animationUntil=now+6000;const n=s.friends[p.id]||0;advance(s,30);boost(s,{social:30,fun:12});s.friends[p.id]=n+1;message=`${p.name}: “${p.lines[n%p.lines.length]}”`;break;}
+ default:throw new Error('That action isn’t available.');
+ }if(!['walk','visit','arrive','cancel'].includes(c.type)||c.type==='arrive'&&s.location)log(s,message);const rewards=checkGoals(s);return {state:s,message,notifications:[message,...rewards]};
+}

@@ -1,0 +1,1306 @@
+[
+  {
+    "variant": "casual",
+    "bytes": 2311268,
+    "triangles": 5776,
+    "height": 1.8489236599880459,
+    "bounds": {
+      "min": [
+        -0.2646411658702612,
+        -0.0012574745562078985,
+        -0.15879096465020023
+      ],
+      "max": [
+        0.2647434501241548,
+        1.847666185431838,
+        0.2866884365773767
+      ]
+    },
+    "bones": [
+      {
+        "name": "Root",
+        "parent": "CharacterArmature"
+      },
+      {
+        "name": "Body",
+        "parent": "Root"
+      },
+      {
+        "name": "Hips",
+        "parent": "Body"
+      },
+      {
+        "name": "Abdomen",
+        "parent": "Hips"
+      },
+      {
+        "name": "Torso",
+        "parent": "Abdomen"
+      },
+      {
+        "name": "Chest",
+        "parent": "Torso"
+      },
+      {
+        "name": "Neck",
+        "parent": "Chest"
+      },
+      {
+        "name": "Head",
+        "parent": "Neck"
+      },
+      {
+        "name": "ShoulderL",
+        "parent": "Chest"
+      },
+      {
+        "name": "UpperArmL",
+        "parent": "ShoulderL"
+      },
+      {
+        "name": "LowerArmL",
+        "parent": "UpperArmL"
+      },
+      {
+        "name": "WristL",
+        "parent": "LowerArmL"
+      },
+      {
+        "name": "Index1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Index2L",
+        "parent": "Index1L"
+      },
+      {
+        "name": "Index3L",
+        "parent": "Index2L"
+      },
+      {
+        "name": "Index4L",
+        "parent": "Index3L"
+      },
+      {
+        "name": "Middle1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Middle2L",
+        "parent": "Middle1L"
+      },
+      {
+        "name": "Middle3L",
+        "parent": "Middle2L"
+      },
+      {
+        "name": "Middle4L",
+        "parent": "Middle3L"
+      },
+      {
+        "name": "Ring1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Ring2L",
+        "parent": "Ring1L"
+      },
+      {
+        "name": "Ring3L",
+        "parent": "Ring2L"
+      },
+      {
+        "name": "Ring4L",
+        "parent": "Ring3L"
+      },
+      {
+        "name": "Pinky1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Pinky2L",
+        "parent": "Pinky1L"
+      },
+      {
+        "name": "Pinky3L",
+        "parent": "Pinky2L"
+      },
+      {
+        "name": "Pinky4L",
+        "parent": "Pinky3L"
+      },
+      {
+        "name": "Thumb1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Thumb2L",
+        "parent": "Thumb1L"
+      },
+      {
+        "name": "Thumb3L",
+        "parent": "Thumb2L"
+      },
+      {
+        "name": "ShoulderR",
+        "parent": "Chest"
+      },
+      {
+        "name": "UpperArmR",
+        "parent": "ShoulderR"
+      },
+      {
+        "name": "LowerArmR",
+        "parent": "UpperArmR"
+      },
+      {
+        "name": "WristR",
+        "parent": "LowerArmR"
+      },
+      {
+        "name": "Index1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Index2R",
+        "parent": "Index1R"
+      },
+      {
+        "name": "Index3R",
+        "parent": "Index2R"
+      },
+      {
+        "name": "Index4R",
+        "parent": "Index3R"
+      },
+      {
+        "name": "Middle1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Middle2R",
+        "parent": "Middle1R"
+      },
+      {
+        "name": "Middle3R",
+        "parent": "Middle2R"
+      },
+      {
+        "name": "Middle4R",
+        "parent": "Middle3R"
+      },
+      {
+        "name": "Ring1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Ring2R",
+        "parent": "Ring1R"
+      },
+      {
+        "name": "Ring3R",
+        "parent": "Ring2R"
+      },
+      {
+        "name": "Ring4R",
+        "parent": "Ring3R"
+      },
+      {
+        "name": "Pinky1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Pinky2R",
+        "parent": "Pinky1R"
+      },
+      {
+        "name": "Pinky3R",
+        "parent": "Pinky2R"
+      },
+      {
+        "name": "Pinky4R",
+        "parent": "Pinky3R"
+      },
+      {
+        "name": "Thumb1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Thumb2R",
+        "parent": "Thumb1R"
+      },
+      {
+        "name": "Thumb3R",
+        "parent": "Thumb2R"
+      },
+      {
+        "name": "UpperLegL",
+        "parent": "Body"
+      },
+      {
+        "name": "LowerLegL",
+        "parent": "UpperLegL"
+      },
+      {
+        "name": "UpperLegR",
+        "parent": "Body"
+      },
+      {
+        "name": "LowerLegR",
+        "parent": "UpperLegR"
+      },
+      {
+        "name": "FootL",
+        "parent": "Root"
+      },
+      {
+        "name": "PTL",
+        "parent": "Root"
+      },
+      {
+        "name": "FootR",
+        "parent": "Root"
+      },
+      {
+        "name": "PTR",
+        "parent": "Root"
+      }
+    ],
+    "materials": [
+      "White",
+      "Red_Dark",
+      "LightBrown",
+      "Skin",
+      "Skin_Darker",
+      "Eyebrows",
+      "Eye",
+      "Hair",
+      "LightBlue"
+    ],
+    "clips": [
+      {
+        "name": "CharacterArmature|Death",
+        "duration": 1.0416666269302368,
+        "tracks": 30
+      },
+      {
+        "name": "CharacterArmature|Gun_Shoot",
+        "duration": 0.5833333134651184,
+        "tracks": 34
+      },
+      {
+        "name": "CharacterArmature|HitRecieve",
+        "duration": 0.5416666865348816,
+        "tracks": 18
+      },
+      {
+        "name": "CharacterArmature|HitRecieve_2",
+        "duration": 0.5416666865348816,
+        "tracks": 19
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "duration": 1.6666666269302368,
+        "tracks": 21
+      },
+      {
+        "name": "CharacterArmature|Idle_Gun",
+        "duration": 1.6666666269302368,
+        "tracks": 35
+      },
+      {
+        "name": "CharacterArmature|Idle_Gun_Pointing",
+        "duration": 1.6666666269302368,
+        "tracks": 35
+      },
+      {
+        "name": "CharacterArmature|Idle_Gun_Shoot",
+        "duration": 0.6666666865348816,
+        "tracks": 38
+      },
+      {
+        "name": "CharacterArmature|Idle_Neutral",
+        "duration": 1.6666666269302368,
+        "tracks": 29
+      },
+      {
+        "name": "CharacterArmature|Idle_Sword",
+        "duration": 1.6666666269302368,
+        "tracks": 34
+      },
+      {
+        "name": "CharacterArmature|Interact",
+        "duration": 1.25,
+        "tracks": 23
+      },
+      {
+        "name": "CharacterArmature|Kick_Left",
+        "duration": 0.9166666865348816,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Kick_Right",
+        "duration": 0.9166666865348816,
+        "tracks": 56
+      },
+      {
+        "name": "CharacterArmature|Punch_Left",
+        "duration": 0.8333333134651184,
+        "tracks": 55
+      },
+      {
+        "name": "CharacterArmature|Punch_Right",
+        "duration": 0.8333333134651184,
+        "tracks": 56
+      },
+      {
+        "name": "CharacterArmature|Roll",
+        "duration": 1.3333333730697632,
+        "tracks": 58
+      },
+      {
+        "name": "CharacterArmature|Run",
+        "duration": 0.7916666865348816,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Run_Back",
+        "duration": 0.8333333134651184,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Run_Left",
+        "duration": 0.7916666865348816,
+        "tracks": 55
+      },
+      {
+        "name": "CharacterArmature|Run_Right",
+        "duration": 0.7916666865348816,
+        "tracks": 56
+      },
+      {
+        "name": "CharacterArmature|Run_Shoot",
+        "duration": 0.8333333134651184,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Sword_Slash",
+        "duration": 1,
+        "tracks": 37
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "duration": 1.3333333730697632,
+        "tracks": 37
+      },
+      {
+        "name": "CharacterArmature|Wave",
+        "duration": 1.6666666269302368,
+        "tracks": 23
+      },
+      {
+        "name": "Northbound|Sit",
+        "duration": 3,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Wait",
+        "duration": 4,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Talk",
+        "duration": 2.4,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Phone",
+        "duration": 3.6,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Coffee",
+        "duration": 4.8,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Bike",
+        "duration": 1.2,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Carry_Bag",
+        "duration": 3,
+        "tracks": 124
+      }
+    ]
+  },
+  {
+    "variant": "hoodie",
+    "bytes": 2337704,
+    "triangles": 6206,
+    "height": 1.8613744058065085,
+    "bounds": {
+      "min": [
+        -0.27262588148743044,
+        -0.004002280077649941,
+        -0.08413966450290566
+      ],
+      "max": [
+        0.272752365795538,
+        1.8573721257288585,
+        0.28668843518425713
+      ]
+    },
+    "bones": [
+      {
+        "name": "Root",
+        "parent": "CharacterArmature"
+      },
+      {
+        "name": "Body",
+        "parent": "Root"
+      },
+      {
+        "name": "Hips",
+        "parent": "Body"
+      },
+      {
+        "name": "Abdomen",
+        "parent": "Hips"
+      },
+      {
+        "name": "Torso",
+        "parent": "Abdomen"
+      },
+      {
+        "name": "Chest",
+        "parent": "Torso"
+      },
+      {
+        "name": "Neck",
+        "parent": "Chest"
+      },
+      {
+        "name": "Head",
+        "parent": "Neck"
+      },
+      {
+        "name": "ShoulderL",
+        "parent": "Chest"
+      },
+      {
+        "name": "UpperArmL",
+        "parent": "ShoulderL"
+      },
+      {
+        "name": "LowerArmL",
+        "parent": "UpperArmL"
+      },
+      {
+        "name": "WristL",
+        "parent": "LowerArmL"
+      },
+      {
+        "name": "Index1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Index2L",
+        "parent": "Index1L"
+      },
+      {
+        "name": "Index3L",
+        "parent": "Index2L"
+      },
+      {
+        "name": "Index4L",
+        "parent": "Index3L"
+      },
+      {
+        "name": "Middle1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Middle2L",
+        "parent": "Middle1L"
+      },
+      {
+        "name": "Middle3L",
+        "parent": "Middle2L"
+      },
+      {
+        "name": "Middle4L",
+        "parent": "Middle3L"
+      },
+      {
+        "name": "Ring1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Ring2L",
+        "parent": "Ring1L"
+      },
+      {
+        "name": "Ring3L",
+        "parent": "Ring2L"
+      },
+      {
+        "name": "Ring4L",
+        "parent": "Ring3L"
+      },
+      {
+        "name": "Pinky1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Pinky2L",
+        "parent": "Pinky1L"
+      },
+      {
+        "name": "Pinky3L",
+        "parent": "Pinky2L"
+      },
+      {
+        "name": "Pinky4L",
+        "parent": "Pinky3L"
+      },
+      {
+        "name": "Thumb1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Thumb2L",
+        "parent": "Thumb1L"
+      },
+      {
+        "name": "Thumb3L",
+        "parent": "Thumb2L"
+      },
+      {
+        "name": "ShoulderR",
+        "parent": "Chest"
+      },
+      {
+        "name": "UpperArmR",
+        "parent": "ShoulderR"
+      },
+      {
+        "name": "LowerArmR",
+        "parent": "UpperArmR"
+      },
+      {
+        "name": "WristR",
+        "parent": "LowerArmR"
+      },
+      {
+        "name": "Index1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Index2R",
+        "parent": "Index1R"
+      },
+      {
+        "name": "Index3R",
+        "parent": "Index2R"
+      },
+      {
+        "name": "Index4R",
+        "parent": "Index3R"
+      },
+      {
+        "name": "Middle1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Middle2R",
+        "parent": "Middle1R"
+      },
+      {
+        "name": "Middle3R",
+        "parent": "Middle2R"
+      },
+      {
+        "name": "Middle4R",
+        "parent": "Middle3R"
+      },
+      {
+        "name": "Ring1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Ring2R",
+        "parent": "Ring1R"
+      },
+      {
+        "name": "Ring3R",
+        "parent": "Ring2R"
+      },
+      {
+        "name": "Ring4R",
+        "parent": "Ring3R"
+      },
+      {
+        "name": "Pinky1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Pinky2R",
+        "parent": "Pinky1R"
+      },
+      {
+        "name": "Pinky3R",
+        "parent": "Pinky2R"
+      },
+      {
+        "name": "Pinky4R",
+        "parent": "Pinky3R"
+      },
+      {
+        "name": "Thumb1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Thumb2R",
+        "parent": "Thumb1R"
+      },
+      {
+        "name": "Thumb3R",
+        "parent": "Thumb2R"
+      },
+      {
+        "name": "UpperLegL",
+        "parent": "Body"
+      },
+      {
+        "name": "LowerLegL",
+        "parent": "UpperLegL"
+      },
+      {
+        "name": "UpperLegR",
+        "parent": "Body"
+      },
+      {
+        "name": "LowerLegR",
+        "parent": "UpperLegR"
+      },
+      {
+        "name": "FootL",
+        "parent": "Root"
+      },
+      {
+        "name": "PTL",
+        "parent": "Root"
+      },
+      {
+        "name": "FootR",
+        "parent": "Root"
+      },
+      {
+        "name": "PTR",
+        "parent": "Root"
+      }
+    ],
+    "materials": [
+      "White",
+      "Purple",
+      "Skin",
+      "LightBlue",
+      "Eyebrows",
+      "Eye",
+      "Hair"
+    ],
+    "clips": [
+      {
+        "name": "CharacterArmature|Death",
+        "duration": 1.0416666269302368,
+        "tracks": 30
+      },
+      {
+        "name": "CharacterArmature|Gun_Shoot",
+        "duration": 0.5833333134651184,
+        "tracks": 34
+      },
+      {
+        "name": "CharacterArmature|HitRecieve",
+        "duration": 0.5416666865348816,
+        "tracks": 18
+      },
+      {
+        "name": "CharacterArmature|HitRecieve_2",
+        "duration": 0.5416666865348816,
+        "tracks": 19
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "duration": 1.6666666269302368,
+        "tracks": 21
+      },
+      {
+        "name": "CharacterArmature|Idle_Gun",
+        "duration": 1.6666666269302368,
+        "tracks": 35
+      },
+      {
+        "name": "CharacterArmature|Idle_Gun_Pointing",
+        "duration": 1.6666666269302368,
+        "tracks": 35
+      },
+      {
+        "name": "CharacterArmature|Idle_Gun_Shoot",
+        "duration": 0.6666666865348816,
+        "tracks": 38
+      },
+      {
+        "name": "CharacterArmature|Idle_Neutral",
+        "duration": 1.6666666269302368,
+        "tracks": 29
+      },
+      {
+        "name": "CharacterArmature|Idle_Sword",
+        "duration": 1.6666666269302368,
+        "tracks": 34
+      },
+      {
+        "name": "CharacterArmature|Interact",
+        "duration": 1.25,
+        "tracks": 23
+      },
+      {
+        "name": "CharacterArmature|Kick_Left",
+        "duration": 0.9166666865348816,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Kick_Right",
+        "duration": 0.9166666865348816,
+        "tracks": 56
+      },
+      {
+        "name": "CharacterArmature|Punch_Left",
+        "duration": 0.8333333134651184,
+        "tracks": 55
+      },
+      {
+        "name": "CharacterArmature|Punch_Right",
+        "duration": 0.8333333134651184,
+        "tracks": 56
+      },
+      {
+        "name": "CharacterArmature|Roll",
+        "duration": 1.3333333730697632,
+        "tracks": 58
+      },
+      {
+        "name": "CharacterArmature|Run",
+        "duration": 0.7916666865348816,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Run_Back",
+        "duration": 0.8333333134651184,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Run_Left",
+        "duration": 0.7916666865348816,
+        "tracks": 55
+      },
+      {
+        "name": "CharacterArmature|Run_Right",
+        "duration": 0.7916666865348816,
+        "tracks": 56
+      },
+      {
+        "name": "CharacterArmature|Run_Shoot",
+        "duration": 0.8333333134651184,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Sword_Slash",
+        "duration": 1,
+        "tracks": 37
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "duration": 1.3333333730697632,
+        "tracks": 37
+      },
+      {
+        "name": "CharacterArmature|Wave",
+        "duration": 1.6666666269302368,
+        "tracks": 23
+      },
+      {
+        "name": "Northbound|Sit",
+        "duration": 3,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Wait",
+        "duration": 4,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Talk",
+        "duration": 2.4,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Phone",
+        "duration": 3.6,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Coffee",
+        "duration": 4.8,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Bike",
+        "duration": 1.2,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Carry_Bag",
+        "duration": 3,
+        "tracks": 124
+      }
+    ]
+  },
+  {
+    "variant": "casual-female",
+    "bytes": 2399676,
+    "triangles": 6424,
+    "height": 1.8448564314750207,
+    "bounds": {
+      "min": [
+        -0.27004665319011284,
+        -0.008566965015292263,
+        -0.096837988433344
+      ],
+      "max": [
+        0.2598375079151037,
+        1.8362894664597285,
+        0.27081276016253186
+      ]
+    },
+    "bones": [
+      {
+        "name": "Root",
+        "parent": "CharacterArmature"
+      },
+      {
+        "name": "Body",
+        "parent": "Root"
+      },
+      {
+        "name": "Hips",
+        "parent": "Body"
+      },
+      {
+        "name": "Abdomen",
+        "parent": "Hips"
+      },
+      {
+        "name": "Torso",
+        "parent": "Abdomen"
+      },
+      {
+        "name": "Chest",
+        "parent": "Torso"
+      },
+      {
+        "name": "Neck",
+        "parent": "Chest"
+      },
+      {
+        "name": "Head",
+        "parent": "Neck"
+      },
+      {
+        "name": "ShoulderL",
+        "parent": "Chest"
+      },
+      {
+        "name": "UpperArmL",
+        "parent": "ShoulderL"
+      },
+      {
+        "name": "LowerArmL",
+        "parent": "UpperArmL"
+      },
+      {
+        "name": "WristL",
+        "parent": "LowerArmL"
+      },
+      {
+        "name": "Index1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Index2L",
+        "parent": "Index1L"
+      },
+      {
+        "name": "Index3L",
+        "parent": "Index2L"
+      },
+      {
+        "name": "Index4L",
+        "parent": "Index3L"
+      },
+      {
+        "name": "Middle1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Middle2L",
+        "parent": "Middle1L"
+      },
+      {
+        "name": "Middle3L",
+        "parent": "Middle2L"
+      },
+      {
+        "name": "Middle4L",
+        "parent": "Middle3L"
+      },
+      {
+        "name": "Ring1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Ring2L",
+        "parent": "Ring1L"
+      },
+      {
+        "name": "Ring3L",
+        "parent": "Ring2L"
+      },
+      {
+        "name": "Ring4L",
+        "parent": "Ring3L"
+      },
+      {
+        "name": "Pinky1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Pinky2L",
+        "parent": "Pinky1L"
+      },
+      {
+        "name": "Pinky3L",
+        "parent": "Pinky2L"
+      },
+      {
+        "name": "Pinky4L",
+        "parent": "Pinky3L"
+      },
+      {
+        "name": "Thumb1L",
+        "parent": "WristL"
+      },
+      {
+        "name": "Thumb2L",
+        "parent": "Thumb1L"
+      },
+      {
+        "name": "Thumb3L",
+        "parent": "Thumb2L"
+      },
+      {
+        "name": "ShoulderR",
+        "parent": "Chest"
+      },
+      {
+        "name": "UpperArmR",
+        "parent": "ShoulderR"
+      },
+      {
+        "name": "LowerArmR",
+        "parent": "UpperArmR"
+      },
+      {
+        "name": "WristR",
+        "parent": "LowerArmR"
+      },
+      {
+        "name": "Index1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Index2R",
+        "parent": "Index1R"
+      },
+      {
+        "name": "Index3R",
+        "parent": "Index2R"
+      },
+      {
+        "name": "Index4R",
+        "parent": "Index3R"
+      },
+      {
+        "name": "Middle1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Middle2R",
+        "parent": "Middle1R"
+      },
+      {
+        "name": "Middle3R",
+        "parent": "Middle2R"
+      },
+      {
+        "name": "Middle4R",
+        "parent": "Middle3R"
+      },
+      {
+        "name": "Ring1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Ring2R",
+        "parent": "Ring1R"
+      },
+      {
+        "name": "Ring3R",
+        "parent": "Ring2R"
+      },
+      {
+        "name": "Ring4R",
+        "parent": "Ring3R"
+      },
+      {
+        "name": "Pinky1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Pinky2R",
+        "parent": "Pinky1R"
+      },
+      {
+        "name": "Pinky3R",
+        "parent": "Pinky2R"
+      },
+      {
+        "name": "Pinky4R",
+        "parent": "Pinky3R"
+      },
+      {
+        "name": "Thumb1R",
+        "parent": "WristR"
+      },
+      {
+        "name": "Thumb2R",
+        "parent": "Thumb1R"
+      },
+      {
+        "name": "Thumb3R",
+        "parent": "Thumb2R"
+      },
+      {
+        "name": "UpperLegL",
+        "parent": "Body"
+      },
+      {
+        "name": "LowerLegL",
+        "parent": "UpperLegL"
+      },
+      {
+        "name": "UpperLegR",
+        "parent": "Body"
+      },
+      {
+        "name": "LowerLegR",
+        "parent": "UpperLegR"
+      },
+      {
+        "name": "FootL",
+        "parent": "Root"
+      },
+      {
+        "name": "PTL",
+        "parent": "Root"
+      },
+      {
+        "name": "FootR",
+        "parent": "Root"
+      },
+      {
+        "name": "PTR",
+        "parent": "Root"
+      }
+    ],
+    "materials": [
+      "White",
+      "Skin",
+      "Grey",
+      "Hair_Blond",
+      "Hair_Brown",
+      "Brown",
+      "Orange"
+    ],
+    "clips": [
+      {
+        "name": "CharacterArmature|Death",
+        "duration": 1.3333333730697632,
+        "tracks": 24
+      },
+      {
+        "name": "CharacterArmature|Gun_Shoot",
+        "duration": 0.75,
+        "tracks": 29
+      },
+      {
+        "name": "CharacterArmature|HitRecieve",
+        "duration": 0.7083333134651184,
+        "tracks": 12
+      },
+      {
+        "name": "CharacterArmature|HitRecieve_2",
+        "duration": 0.7083333134651184,
+        "tracks": 12
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "duration": 2.0833332538604736,
+        "tracks": 21
+      },
+      {
+        "name": "CharacterArmature|Idle_Gun",
+        "duration": 2.0833332538604736,
+        "tracks": 34
+      },
+      {
+        "name": "CharacterArmature|Idle_Gun_Pointing",
+        "duration": 2.0833332538604736,
+        "tracks": 34
+      },
+      {
+        "name": "CharacterArmature|Idle_Gun_Shoot",
+        "duration": 0.8333333134651184,
+        "tracks": 37
+      },
+      {
+        "name": "CharacterArmature|Idle_Neutral",
+        "duration": 2.0833332538604736,
+        "tracks": 22
+      },
+      {
+        "name": "CharacterArmature|Idle_Sword",
+        "duration": 2.0833332538604736,
+        "tracks": 34
+      },
+      {
+        "name": "CharacterArmature|Interact",
+        "duration": 1.5833333730697632,
+        "tracks": 15
+      },
+      {
+        "name": "CharacterArmature|Kick_Left",
+        "duration": 1.1666666269302368,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Kick_Right",
+        "duration": 1.1666666269302368,
+        "tracks": 54
+      },
+      {
+        "name": "CharacterArmature|Punch_Left",
+        "duration": 1.0416666269302368,
+        "tracks": 55
+      },
+      {
+        "name": "CharacterArmature|Punch_Right",
+        "duration": 1.0416666269302368,
+        "tracks": 55
+      },
+      {
+        "name": "CharacterArmature|Roll",
+        "duration": 1.6666666269302368,
+        "tracks": 57
+      },
+      {
+        "name": "CharacterArmature|Run",
+        "duration": 1,
+        "tracks": 53
+      },
+      {
+        "name": "CharacterArmature|Run_Back",
+        "duration": 1.0416666269302368,
+        "tracks": 53
+      },
+      {
+        "name": "CharacterArmature|Run_Left",
+        "duration": 1,
+        "tracks": 55
+      },
+      {
+        "name": "CharacterArmature|Run_Right",
+        "duration": 1,
+        "tracks": 55
+      },
+      {
+        "name": "CharacterArmature|Run_Shoot",
+        "duration": 1.0416666269302368,
+        "tracks": 53
+      },
+      {
+        "name": "CharacterArmature|Sword_Slash",
+        "duration": 1.2916666269302368,
+        "tracks": 34
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "duration": 1.6666666269302368,
+        "tracks": 29
+      },
+      {
+        "name": "CharacterArmature|Wave",
+        "duration": 2.0833332538604736,
+        "tracks": 22
+      },
+      {
+        "name": "Northbound|Sit",
+        "duration": 3,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Wait",
+        "duration": 4,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Talk",
+        "duration": 2.4,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Phone",
+        "duration": 3.6,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Coffee",
+        "duration": 4.8,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Bike",
+        "duration": 1.2,
+        "tracks": 124
+      },
+      {
+        "name": "Northbound|Carry_Bag",
+        "duration": 3,
+        "tracks": 124
+      }
+    ]
+  }
+]

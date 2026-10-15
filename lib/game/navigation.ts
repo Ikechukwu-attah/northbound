@@ -1,0 +1,6 @@
+import {districtById} from './data';
+export type Point=[number,number];
+export type Block={x:number;z:number;w:number;d:number};
+export function blocksFor(district:string):Block[]{const b=districtById(district).spots.filter(s=>s.kind!=='park').map(s=>({x:s.x,z:s.z,w:s.kind==='landmark'?8:9,d:6}));b.push(...[-25,-20,20,25].map((x,i)=>({x,z:-22,w:4,d:5})));return b;}
+export function walkable(p:Point,blocks:Block[]){return p[0]>=-29&&p[0]<=29&&p[1]>=-26&&p[1]<=23&&!blocks.some(b=>Math.abs(p[0]-b.x)<b.w/2+.6&&Math.abs(p[1]-b.z)<b.d/2+.6);}
+export function findPath(start:Point,end:Point,blocks:Block[]):Point[]{const a=start.map(Math.round) as Point;const b=end.map(Math.round) as Point;if(!walkable(b,blocks))return [];const key=(p:Point)=>p.join(',');const queue:Point[]=[a];const came=new Map<string,Point|null>([[key(a),null]]);let found=false;for(let i=0;i<queue.length&&i<4000;i++){const p=queue[i];if(p[0]===b[0]&&p[1]===b[1]){found=true;break;}for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const n:Point=[p[0]+dx,p[1]+dz];if(!came.has(key(n))&&walkable(n,blocks)){came.set(key(n),p);queue.push(n);}}}if(!found)return [];const path:Point[]=[];let current:Point|null=b;while(current){path.unshift(current);current=came.get(key(current))??null;}return path.slice(1);}
