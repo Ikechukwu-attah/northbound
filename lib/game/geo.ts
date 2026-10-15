@@ -10,6 +10,8 @@ const stops=geo.stops as unknown as Record<string,Anchor>;
 const places=geo.places as unknown as Record<string,Anchor>;
 export const districts=geo.districts as unknown as Record<string,{center:LonLat;bbox:number[];osm:string}>;
 export const shoreline=geo.shoreline as unknown as LonLat[]; // Lake Ontario waterfront profile, west→east
+// Real arterial street names per former municipality, from OSM (N-S west→east, E-W north→south).
+export const districtArterials=geo.arterials as unknown as Record<string,{ns:string[];ew:string[]}>;
 export const OSM_ATTRIBUTION=geo.meta.attribution as string; // "© OpenStreetMap contributors"
 export const OSM_META=geo.meta;
 

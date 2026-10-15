@@ -98,13 +98,13 @@ async function main(){
  const [S,W,N,E]=BBOX,bbox=`${S},${W},${N},${E}`;
  console.log('1/4 subway stations…');
  let subway=new Map();
- for(let t=0;t<6&&subway.size<60;t++){if(t)await sleep(5000);const subEls=await overpass(`[out:json][timeout:60];node["railway"="station"]["station"="subway"](${bbox});out;`);const m=new Map();for(const e of subEls){const c=coordOf(e);if(e.tags?.name&&c)m.set(norm(e.tags.name),{c,id:'node/'+e.id,name:e.tags.name});}if(m.size>subway.size)subway=m;console.log(`   attempt ${t+1}: ${subway.size} named subway stations`);}
+ for(let t=0;t<6&&subway.size<60;t++){if(t)await sleep(5000);try{const subEls=await overpass(`[out:json][timeout:60];node["railway"="station"]["station"="subway"](${bbox});out;`);const m=new Map();for(const e of subEls){const c=coordOf(e);if(e.tags?.name&&c)m.set(norm(e.tags.name),{c,id:'node/'+e.id,name:e.tags.name});}if(m.size>subway.size)subway=m;}catch(e){console.log('   subway attempt failed:',e.message);}console.log(`   attempt ${t+1}: ${subway.size} named subway stations`);}
 
  console.log('2/4 named features…');
  const names=Object.keys(FEATURES);
  const featQ=`[out:json][timeout:90];(`+names.map(n=>`nwr["name"="${n}"](${bbox});`).join('')+`);out center;`;
  let feats={};
- for(let t=0;t<6;t++){if(t)await sleep(5000);const featEls=await overpass(featQ);const f={};for(const e of featEls){const key=FEATURES[e.tags?.name];const c=coordOf(e);if(key&&c&&!f[key])f[key]={c,id:e.type+'/'+e.id,name:e.tags.name};}if(Object.keys(f).length>Object.keys(feats).length)feats=f;console.log(`   attempt ${t+1}: ${Object.keys(feats).length}/${names.length} features`);if(names.every(n=>feats[FEATURES[n]]))break;}
+ for(let t=0;t<6;t++){if(t)await sleep(5000);try{const featEls=await overpass(featQ);const f={};for(const e of featEls){const key=FEATURES[e.tags?.name];const c=coordOf(e);if(key&&c&&!f[key])f[key]={c,id:e.type+'/'+e.id,name:e.tags.name};}if(Object.keys(f).length>Object.keys(feats).length)feats=f;}catch(e){console.log('   features attempt failed:',e.message);}console.log(`   attempt ${t+1}: ${Object.keys(feats).length}/${names.length} features`);if(names.every(n=>feats[FEATURES[n]]))break;}
  for(const [key,c]of Object.entries(FEATURE_FALLBACK))if(!feats[key])feats[key]={c,id:'fallback',name:key};
  const missing=Object.values(FEATURES).filter(k=>!feats[k]);
  console.log(`   matched ${Object.keys(feats).length}/${names.length+Object.keys(FEATURE_FALLBACK).length} features${missing.length?`; missing: ${missing.join(', ')}`:''}`);
@@ -118,10 +118,26 @@ async function main(){
  // Lake Ontario is a water polygon in OSM (not natural=coastline). Build a coarse
  // shoreline profile from the real OSM waterfront feature coordinates, west→east,
  // which includes Humber Bay and the Scarborough Bluffs.
- console.log('4/4 Lake Ontario shoreline (from OSM waterfront features)…');
+ console.log('4/5 Lake Ontario shoreline (from OSM waterfront features)…');
  const shoreline=['sam_smith','humber_bay','harbourfront','bluffers']
   .map(k=>feats[k]&&round(feats[k].c)).filter(Boolean).sort((a,b)=>a[0]-b[0]);
  console.log(`   ${shoreline.length} shoreline anchor points`);
+
+ console.log('5/5 district arterials (real OSM street names)…');
+ const arterials={};for(const d of DISTRICTS)arterials[d]={ns:[],ew:[]};
+ for(let t=0;t<4&&DISTRICTS.some(d=>!arterials[d].ns.length&&!arterials[d].ew.length);t++){if(t)await sleep(5000);try{
+  const roadEls=await overpass(`[out:json][timeout:150];way["highway"~"^(trunk|primary|secondary)$"]["name"](${bbox});out tags bb;`);
+  const byName=new Map();
+  for(const e of roadEls){const b=e.bounds,name=e.tags?.name;if(!b||!name)continue;const r={name,clon:(b.minlon+b.maxlon)/2,clat:(b.minlat+b.maxlat)/2,dx:b.maxlon-b.minlon,dy:b.maxlat-b.minlat};r.len=Math.max(r.dx,r.dy);const p=byName.get(name);if(!p||r.len>p.len)byName.set(name,r);}
+  // Assign each road to the smallest district whose REAL OSM bbox contains its centre;
+  // roads outside every Toronto district bbox (Vaughan/Markham etc.) are dropped.
+  const inBox=(r,b)=>r.clon>=b[0]&&r.clon<=b[2]&&r.clat>=b[1]&&r.clat<=b[3];
+  const buckets={};for(const d of DISTRICTS)buckets[d]=[];
+  for(const r of byName.values()){let best=null,area=Infinity;for(const d of DISTRICTS){const b=districts[d].bbox;if(inBox(r,b)){const a=(b[2]-b[0])*(b[3]-b[1]);if(a<area){area=a;best=d;}}}if(best)buckets[best].push(r);}
+  // Keep the longest (major) arterials per orientation, then order by position for display.
+  for(const d of DISTRICTS){const rs=buckets[d].slice().sort((a,b)=>b.len-a.len);arterials[d]={ns:rs.filter(r=>r.dy>=r.dx*1.3).slice(0,6).sort((a,b)=>a.clon-b.clon).map(r=>r.name),ew:rs.filter(r=>r.dx>r.dy*1.3).slice(0,6).sort((a,b)=>b.clat-a.clat).map(r=>r.name)};}
+  console.log('   '+DISTRICTS.map(d=>`${d.split(' ')[0]} ${arterials[d].ns.length}ns/${arterials[d].ew.length}ew`).join(' · '));
+ }catch(e){console.log('   arterials attempt failed:',e.message);}}
 
  const resolveStop=(id,m)=>{
   if(m.sub){const hit=subway.get(norm(m.sub));if(hit)return{c:round(hit.c),osm:hit.id};console.warn(`  ! subway miss: ${id} (${m.sub})`);}
@@ -143,7 +159,7 @@ async function main(){
  const out={
   meta:{source:'OpenStreetMap via Overpass',endpoints:ENDPOINTS,license:'ODbL-1.0',attribution:'© OpenStreetMap contributors',
    bbox:BBOX,fetchedAt:new Date().toISOString(),note:'Compressed game map; these real coords drive simulated distance/time only.'},
-  stops,places,districts,shoreline,
+  stops,places,districts,shoreline,arterials,
  };
  const complete=!unresolved.length&&shoreline.length>=4&&Object.keys(stops).length===Object.keys(STOP_MAP).length&&Object.keys(places).length===Object.keys(PLACE_MAP).length;
  console.log(`\nstops=${Object.keys(stops).length}/${Object.keys(STOP_MAP).length} places=${Object.keys(places).length}/${Object.keys(PLACE_MAP).length} districts=${Object.keys(districts).length} shoreline=${shoreline.length}`);

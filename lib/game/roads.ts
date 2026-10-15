@@ -1,11 +1,13 @@
 import {BLOCK,PLACES,districtAt,type Point} from './world';
+import {districtArterials} from './geo';
 export type Axis='x'|'z';
 export type Road={axis:Axis;coordinate:number;name:string;lanes:2|4|6;width:number;laneWidth:number;tracks:boolean;bike:boolean;arterial:boolean};
 // Real Toronto arterials, each gated to the along-range of the compressed map where that
 // street actually runs. Everything off this list is a narrow 2-lane residential street.
 // axis 'x' = E-W road keyed by z (along = x); axis 'z' = N-S road keyed by x (along = z).
 type Arterial={axis:Axis;coordinate:number;along:[number,number];lanes:4|6;name?:string;west?:string;east?:string;tracks?:boolean;bike?:boolean};
-const ARTERIALS:Arterial[]=[
+// Core downtown + crosstown arterials: canonical real streets fixed to the compressed grid.
+const CORE:Arterial[]=[
  {axis:'x',coordinate:-96,along:[-260,55],lanes:4,west:'Bloor St W',east:'Bloor St E',bike:true},
  {axis:'x',coordinate:-96,along:[55,160],lanes:4,name:'Danforth Ave'},
  {axis:'x',coordinate:-48,along:[-210,210],lanes:4,west:'Queen St W',east:'Queen St E',tracks:true},
@@ -15,17 +17,24 @@ const ARTERIALS:Arterial[]=[
  {axis:'z',coordinate:0,along:[-470,0],lanes:4,name:'Yonge St'},
  {axis:'z',coordinate:-24,along:[-120,-10],lanes:4,name:'University Ave'},
  {axis:'z',coordinate:-48,along:[-130,-10],lanes:4,name:'Spadina Ave',tracks:true},
- {axis:'x',coordinate:-408,along:[-90,90],lanes:6,west:'Finch Ave W',east:'Finch Ave E'}, // North York
- {axis:'x',coordinate:-120,along:[150,370],lanes:4,name:'Lawrence Ave E'}, // Scarborough
- {axis:'z',coordinate:240,along:[-240,-20],lanes:4,name:'McCowan Rd'},
- {axis:'z',coordinate:216,along:[-240,-20],lanes:4,name:'Kennedy Rd'},
- {axis:'x',coordinate:-24,along:[-240,-150],lanes:4,name:'Lake Shore Blvd W'}, // Etobicoke
- {axis:'z',coordinate:-192,along:[-110,-10],lanes:4,name:'Islington Ave'},
- {axis:'z',coordinate:-216,along:[-110,-10],lanes:4,name:'Kipling Ave'},
- {axis:'z',coordinate:-120,along:[-230,-150],lanes:4,name:'Weston Rd'}, // York
- {axis:'x',coordinate:-120,along:[55,140],lanes:4,name:'Danforth Ave'}, // East York
- {axis:'z',coordinate:96,along:[-180,-110],lanes:4,name:'Pape Ave'},
 ];
+// Suburban arterials: real OSM street name per district, selected by identity (robust to
+// list order) from the baked data, mapped to a compressed grid slot. Fallback keeps a real
+// name if OSM lacks that street. See scripts/bake-osm.mjs / data/osm/geo.json.
+const SLOTS:{d:string;orient:'ns'|'ew';match:string;axis:Axis;coordinate:number;along:[number,number];lanes:4|6;fallback:string}[]=[
+ {d:'North York',orient:'ew',match:'Steeles',axis:'x',coordinate:-408,along:[-90,90],lanes:6,fallback:'Finch Ave W'},
+ {d:'Scarborough',orient:'ew',match:'Lawrence',axis:'x',coordinate:-120,along:[150,370],lanes:4,fallback:'Lawrence Ave E'},
+ {d:'Scarborough',orient:'ns',match:'Brimley',axis:'z',coordinate:240,along:[-240,-20],lanes:4,fallback:'Brimley Rd'},
+ {d:'Scarborough',orient:'ns',match:'Kennedy',axis:'z',coordinate:216,along:[-240,-20],lanes:4,fallback:'Kennedy Rd'},
+ {d:'Etobicoke',orient:'ew',match:'Lake Shore',axis:'x',coordinate:-24,along:[-240,-150],lanes:4,fallback:'Lake Shore Blvd W'},
+ {d:'Etobicoke',orient:'ns',match:'Royal York',axis:'z',coordinate:-192,along:[-110,-10],lanes:4,fallback:'Royal York Rd'},
+ {d:'Etobicoke',orient:'ns',match:'Kipling',axis:'z',coordinate:-216,along:[-110,-10],lanes:4,fallback:'Kipling Ave'},
+ {d:'York',orient:'ns',match:'Jane',axis:'z',coordinate:-120,along:[-230,-150],lanes:4,fallback:'Jane St'},
+ {d:'East York',orient:'ew',match:'Connor',axis:'x',coordinate:-120,along:[55,140],lanes:4,fallback:'O’Connor Dr'},
+ {d:'East York',orient:'ns',match:'Pape',axis:'z',coordinate:96,along:[-180,-110],lanes:4,fallback:'Pape Ave'},
+];
+const SUBURBAN:Arterial[]=SLOTS.map(s=>{const list=districtArterials[s.d]?.[s.orient]||[];return {axis:s.axis,coordinate:s.coordinate,along:s.along,lanes:s.lanes,name:list.find(n=>n.includes(s.match))||s.fallback};});
+const ARTERIALS:Arterial[]=[...CORE,...SUBURBAN];
 export function roadAt(axis:Axis,coordinate:number,along=0):Road{
  const a=ARTERIALS.find(r=>r.axis===axis&&r.coordinate===coordinate&&along>=r.along[0]&&along<=r.along[1]);
  if(!a)return {axis,coordinate,name:'Local street',lanes:2,width:3.2,laneWidth:1.6,arterial:false,tracks:false,bike:false};

@@ -14,7 +14,7 @@
    43.87,
    -79.11
   ],
-  "fetchedAt": "2026-10-15T16:03:05.988Z",
+  "fetchedAt": "2026-10-15T16:31:25.909Z",
   "note": "Compressed game map; these real coords drive simulated distance/time only."
  },
  "stops": {
@@ -727,5 +727,107 @@
    -79.23498,
    43.70572
   ]
- ]
+ ],
+ "arterials": {
+  "Old Toronto": {
+   "ns": [
+    "Spadina Avenue",
+    "Avenue Road",
+    "Church Street",
+    "Parliament Street",
+    "Broadview Avenue",
+    "Carlaw Avenue"
+   ],
+   "ew": [
+    "St. Clair Avenue West",
+    "Queen Street East",
+    "Gerrard Street East",
+    "Lake Shore Boulevard East",
+    "Queen Street West",
+    "King Street West"
+   ]
+  },
+  "North York": {
+   "ns": [
+    "Pine Valley Drive",
+    "Allen Road",
+    "Yonge Street",
+    "Don Mills Road West",
+    "Don Mills Road East",
+    "Don Mills Road"
+   ],
+   "ew": [
+    "Centre Street",
+    "Steeles Avenue West",
+    "Sheppard Avenue East",
+    "York Mills Road",
+    "Wilson Avenue",
+    "Eglinton Avenue East"
+   ]
+  },
+  "Scarborough": {
+   "ns": [
+    "Warden Avenue",
+    "Birchmount Road",
+    "Kennedy Road",
+    "Brimley Road",
+    "Danforth Road",
+    "Port Union Road"
+   ],
+   "ew": [
+    "Steeles Avenue East",
+    "Morningside Avenue",
+    "Milner Avenue",
+    "Ellesmere Road",
+    "Lawrence Avenue East",
+    "Danforth Avenue"
+   ]
+  },
+  "Etobicoke": {
+   "ns": [
+    "Carlingview Drive",
+    "Renforth Drive",
+    "The West Mall",
+    "The East Mall",
+    "Kipling Avenue",
+    "Royal York Road"
+   ],
+   "ew": [
+    "Finch Avenue West",
+    "Rexdale Boulevard",
+    "Eglinton Avenue West",
+    "Horner Avenue",
+    "Lake Shore Boulevard West",
+    "North Service Road"
+   ]
+  },
+  "York": {
+   "ns": [
+    "Black Creek Drive",
+    "Jane Street",
+    "Old Weston Road"
+   ],
+   "ew": [
+    "Lawrence Avenue West",
+    "Trethewey Drive",
+    "Rogers Road",
+    "Dupont Street",
+    "Dundas Street West"
+   ]
+  },
+  "East York": {
+   "ns": [
+    "Bayview Avenue",
+    "Millwood Road",
+    "Pape Avenue",
+    "Coxwell Avenue",
+    "Woodbine Avenue",
+    "Victoria Park Avenue"
+   ],
+   "ew": [
+    "Overlea Boulevard",
+    "O'Connor Drive"
+   ]
+  }
+ }
 }

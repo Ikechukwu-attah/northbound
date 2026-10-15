@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),ts=require('typescript');
 const dest=path.resolve(__dirname,'../work/road-test');fs.mkdirSync(dest,{recursive:true});fs.writeFileSync(path.join(dest,'package.json'),'{"type":"commonjs"}');
-for(const file of ['data','world','roads'])fs.writeFileSync(path.join(dest,file+'.js'),ts.transpileModule(fs.readFileSync(path.resolve(__dirname,'../lib/game/'+file+'.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText);
+for(const file of ['data','geo','world','roads'])fs.writeFileSync(path.join(dest,file+'.js'),ts.transpileModule(fs.readFileSync(path.resolve(__dirname,'../lib/game/'+file+'.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText);
 const {roadAt,signalAt,signalized,makeRoadTiles,trafficBudget,stepTraffic,vehiclePoint}=require('../work/road-test/roads.js');
 const {chunksAround}=require('../work/road-test/world.js');
 const car=(extra={})=>({id:0,axis:'x',road:-48,at:-10,direction:1,lane:0,kind:'car',length:2.4,speed:3.4,min:-72,max:72,halted:false,...extra});

@@ -58,3 +58,11 @@ test('district shapes and the Lake Ontario shoreline are baked from OSM',()=>{
  assert.ok(geo.shoreline[geo.shoreline.length-1][0]>geo.shoreline[0][0],'shoreline ordered west to east');
  assert.ok(geo.shoreline[geo.shoreline.length-1][1]>geo.shoreline[0][1],'Bluffs (east) sit at a higher latitude than the west end');
 });
+
+test('per-district arterial street names are baked from OSM',()=>{
+ for(const d of ['Old Toronto','North York','Scarborough','Etobicoke','York','East York']){const a=geo.arterials[d];assert.ok(a&&(a.ns.length||a.ew.length),d+' has OSM arterials');}
+ const scar=geo.arterials['Scarborough'].ns.concat(geo.arterials['Scarborough'].ew);
+ assert.ok(scar.some(n=>/Kennedy|Lawrence|Brimley|Ellesmere|Midland/.test(n)),'Scarborough arterials look real');
+ assert.ok(geo.arterials['Etobicoke'].ew.some(n=>/Lake Shore/.test(n)),'Etobicoke has Lake Shore Blvd');
+ assert.ok(geo.arterials['East York'].ns.some(n=>/Pape|Bayview|Coxwell/.test(n)),'East York arterials look real');
+});
