@@ -53,7 +53,7 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   if(bike&&(s.needs.energy<20||s.needs.bladder<15))throw new Error('Too exhausted or uncomfortable to cycle. Walk to a bathroom or a place to rest.');
   if(bike&&!s.bike)throw new Error('Explore three districts to unlock the community loan bike.');
   if(length<.1)throw new Error('You are already here.');
-  s.journey={kind:bike?'bike':'walk',path,startedAt:now,seconds:Math.max(.3,Math.min(90,length/(bike?12:s.needs.energy<20?3.5:7))),minutes:travelEstimate(s,target,destination?.id||(stop?'stop:'+stop.id:undefined),bike).minutes,label:destination?.name||stop?.name||'Selected sidewalk',detail:bike?'Cycling via connected streets':'Walking via sidewalks and crossings',destination:destination?.id,waitSeconds:0};message=`${bike?'Cycling':'Walking'} to ${s.journey.label}.`;break;
+  s.journey={kind:bike?'bike':'walk',path,startedAt:now,seconds:Math.max(.3,Math.min(90,length/(bike?12:s.needs.energy<20?3.5:7))),minutes:travelEstimate(s,target,destination?.id||(stop?'stop:'+stop.id:undefined),bike).minutes,label:destination?.name||stop?.name||'Selected sidewalk',detail:bike?'Cycling via connected streets':'Walking via sidewalks and crossings'+(s.needs.energy<20?' · exhausted, walking ~50% slower':''),destination:destination?.id,waitSeconds:0};message=`${bike?'Cycling':'Walking'} to ${s.journey.label}.`;break;
  }
  case 'transit':case 'fast':{
   const targetPlace=c.type==='fast'?placeById(c.id||''):undefined;

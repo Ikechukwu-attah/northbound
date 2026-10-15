@@ -118,10 +118,21 @@ async function main(){
  // Lake Ontario is a water polygon in OSM (not natural=coastline). Build a coarse
  // shoreline profile from the real OSM waterfront feature coordinates, west→east,
  // which includes Humber Bay and the Scarborough Bluffs.
- console.log('4/5 Lake Ontario shoreline (from OSM waterfront features)…');
- const shoreline=['sam_smith','humber_bay','harbourfront','bluffers']
-  .map(k=>feats[k]&&round(feats[k].c)).filter(Boolean).sort((a,b)=>a[0]-b[0]);
- console.log(`   ${shoreline.length} shoreline anchor points`);
+ console.log('4/5 Lake Ontario shoreline (OSM waterfront, W→E Etobicoke Creek → Rouge)…');
+ // Real waterfront anchor coordinates spanning the whole Toronto lakefront (Etobicoke Creek → Rouge):
+ // Marie Curtis, Col Sam Smith, Humber Bay, Sunnyside, Harbourfront, Cherry Beach, Leslie Spit,
+ // Ashbridge's, Woodbine, the Bluffs, East Point, Rouge. The full Lake Ontario water polygon is a
+ // single giant OSM way that times out on public Overpass, so we anchor to these real features.
+ const SHORE_FALLBACK=[[-79.543,43.585],[-79.516,43.593],[-79.48,43.617],[-79.455,43.637],[-79.381,43.64],[-79.345,43.637],[-79.33,43.627],[-79.308,43.661],[-79.3,43.662],[-79.235,43.706],[-79.178,43.73],[-79.115,43.795]];
+ const SHORE_NAMES=['Marie Curtis Park','Colonel Samuel Smith Park','Humber Bay Park West','Sunnyside Beach','Harbourfront Centre','Cherry Beach','Tommy Thompson Park',"Ashbridge's Bay Park",'Woodbine Beach',"Bluffer's Park",'East Point Park','Rouge Beach'];
+ let fetched=[];
+ for(let t=0;t<2&&fetched.length<8;t++){if(t)await sleep(5000);try{
+  const els=await overpass(`[out:json][timeout:90];(`+SHORE_NAMES.map(n=>`nwr["name"="${n}"](${bbox});`).join('')+`);out center;`);
+  const seen=new Set(),pts=[];for(const e of els){const c=coordOf(e);if(!c)continue;const r=round(c),k=r.join();if(!seen.has(k)){seen.add(k);pts.push(r);}}
+  if(pts.length>fetched.length)fetched=pts;
+ }catch(e){console.log('   shoreline attempt failed:',e.message);}}
+ const shoreline=(fetched.length>=8?fetched:SHORE_FALLBACK.map(round)).sort((a,b)=>a[0]-b[0]);
+ console.log(`   ${shoreline.length} shoreline points (${fetched.length>=8?'OSM fetch':'real fallback'}) ${shoreline[0]} … ${shoreline[shoreline.length-1]}`);
 
  console.log('5/5 district arterials (real OSM street names)…');
  const arterials={};for(const d of DISTRICTS)arterials[d]={ns:[],ew:[]};

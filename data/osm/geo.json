@@ -14,7 +14,7 @@
    43.87,
    -79.11
   ],
-  "fetchedAt": "2026-10-15T16:31:25.909Z",
+  "fetchedAt": "2026-10-15T20:01:49.957Z",
   "note": "Compressed game map; these real coords drive simulated distance/time only."
  },
  "stops": {
@@ -712,20 +712,80 @@
  },
  "shoreline": [
   [
+   -79.54404,
+   43.58508
+  ],
+  [
+   -79.543,
+   43.588
+  ],
+  [
    -79.51628,
    43.59328
+  ],
+  [
+   -79.51389,
+   43.59304
   ],
   [
    -79.47954,
    43.61689
   ],
   [
+   -79.45078,
+   43.6366
+  ],
+  [
+   -79.38332,
+   43.63859
+  ],
+  [
+   -79.38192,
+   43.63961
+  ],
+  [
+   -79.38174,
+   43.63966
+  ],
+  [
    -79.38137,
    43.63975
   ],
   [
+   -79.38118,
+   43.63981
+  ],
+  [
+   -79.34526,
+   43.63762
+  ],
+  [
+   -79.34379,
+   43.63698
+  ],
+  [
+   -79.33255,
+   43.63251
+  ],
+  [
+   -79.32085,
+   43.64574
+  ],
+  [
+   -79.30683,
+   43.66173
+  ],
+  [
    -79.23498,
    43.70572
+  ],
+  [
+   -79.23438,
+   43.70807
+  ],
+  [
+   -79.16429,
+   43.75844
   ]
  ],
  "arterials": {
@@ -786,9 +846,9 @@
   "Etobicoke": {
    "ns": [
     "Carlingview Drive",
-    "Renforth Drive",
     "The West Mall",
     "The East Mall",
+    "Shorncliffe Road",
     "Kipling Avenue",
     "Royal York Road"
    ],
@@ -812,7 +872,8 @@
     "Trethewey Drive",
     "Rogers Road",
     "Dupont Street",
-    "Dundas Street West"
+    "Dundas Street West",
+    "The Kingsway"
    ]
   },
   "East York": {
