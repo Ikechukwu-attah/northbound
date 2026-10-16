@@ -8,6 +8,7 @@ import {DaylightContext} from './Lighting';
 import Crowds from './Crowds';
 import {RoadNetwork,Traffic} from './RoadNetwork';
 import TransitScene from './TransitScene';
+import TTCBus from './TTCBus';
 import {namedAppearance,type HumanAction} from '@/lib/game/characters';
 import {peopleAt} from '@/lib/game/schedules';
 import {daylightAt} from '@/lib/game/solar';
@@ -68,7 +69,7 @@ function Scene({game,selected,player,reset,onSpot,onStop,onWalk,onReady,onJourne
  {stops.map(s=><group key={s.id} position={[s.point[0]+1.5,0,s.point[1]-1.5]} onClick={e=>{e.stopPropagation();if(e.delta<5)onStop(s.id)}}><Cylinder r={.09} h={3.8} p={[0,1.9,0]} c="#59675c"/><Box p={[0,3.3,0]} s={[1.5,.9,.2]} c="#d43f3a"/><Box p={[0,3.3,.12]} s={[1,.18,.03]} c="#fff8e5"/><Box p={[1.6,1.1,0]} s={[1.9,2.2,.15]} c="#9fb6ae"/><Box p={[1.6,2.3,0]} s={[2.2,.15,1.4]} c="#60796e"/></group>)}
  {peopleAt(game?.minutes||540).map(({id,place},i)=>{const p=nearby.find(p=>p.id===place);return p?<group key={id} position={[p.x+2,0,p.z+5.8]}><Human appearance={namedAppearance(id)} action={i%3===0?'coffee':i%3===1?'wave':'talk'} minutes={game?.minutes||540} scale={1.8}/></group>:null})}
 
- <group ref={avatar}>{riding?<group><Box p={[0,.8,0]} s={[2,1.3,5.4]} c="#da291c"/><Box p={[0,1.6,0]} s={[2,.8,5.4]} c="#f4eee0"/><Box p={[0,1.65,0]} s={[2.05,.55,4.9]} c="#2e4145"/><Box p={[0,2.1,0]} s={[2.1,.18,5.5]} c="#eee8d8"/>{[-1,1].map(x=>[-1.6,1.6].map(z=><mesh key={x+','+z} position={[x,.4,z]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.4,.4,.2,10]}/><meshStandardMaterial color="#303b38"/></mesh>))}</group>:<Human appearance={game?.life.appearance} action={game?.journey?(game.journey.kind==='bike'?'bike':game.journey.kind==='walk'?'walk':'wait'):game&&game.life.animationUntil>Date.now()?game.life.animation as HumanAction:'idle'} minutes={game?.minutes||540}/>}<mesh renderOrder={5} position={[0,.3,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.8,1.12,40]}/><meshBasicMaterial color="#baff65" depthTest={false}/></mesh></group>
+ <group ref={avatar}>{riding?<TTCBus/>:<Human appearance={game?.life.appearance} action={game?.journey?(game.journey.kind==='bike'?'bike':game.journey.kind==='walk'?'walk':'wait'):game&&game.life.animationUntil>Date.now()?game.life.animation as HumanAction:'idle'} minutes={game?.minutes||540}/>}<mesh renderOrder={5} position={[0,.3,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.8,1.12,40]}/><meshBasicMaterial color="#baff65" depthTest={false}/></mesh></group>
  <Traffic cells={cells} minutes={game?.minutes||540} quality={quality} avatar={avatar} pedestrians={pedestrianPositions}/><Crowds playerStart={game?.position||spawn} avatar={avatar} positions={pedestrianPositions} centre={centre} minutes={game?.minutes||540} quality={quality}/><ProjectedLabels refs={labelRefs} spots={LABELS} selected={selected} avatar={avatar}/>
  <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping dampingFactor={.12} minZoom={zoomMin} maxZoom={zoomMin*6} minPolarAngle={.9} maxPolarAngle={.9} mouseButtons={{LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE}} touches={{ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_ROTATE}}/>
  </DaylightContext.Provider>;
