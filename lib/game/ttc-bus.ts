@@ -3,7 +3,7 @@
  * All geometry, including mirrors/rack, fits the existing 1.4 × 5.4 traffic envelope.
  * Reference: https://commons.wikimedia.org/wiki/File:TTC_nova_8531_bus_finch.jpg
  * No photograph or third-party mesh is bundled. */
-export type BusPart={shape:'box'|'wheel';p:[number,number,number];s:[number,number,number];c:string;tag:string};
+export type BusPart={shape:'box'|'wheel';p:[number,number,number];s:[number,number,number];c:string;tag:string;rotation?:[number,number,number]};
 export type BusDecal={p:[number,number,number];size:[number,number];angle:number;tile:'destination'|'badge'|'fleet'|'accessible'};
 export const BUS_LENGTH=5.4;
 const white='#f4f3ec',red='#da291c',glass='#233740',rubber='#22292b',metal='#aeb6b7';

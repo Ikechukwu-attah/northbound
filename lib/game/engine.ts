@@ -6,7 +6,7 @@ import { PEOPLE,type DistrictId,type Need } from './data';
 import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,districtAt,nearbyPlace,snapPoint,nearestPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
 import {placeGeo,stopGeo,haversineMetres} from './geo';
 import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES} from './transit';
-export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number;restSeat?:RestSeat};
+export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number;vehicleMode?:'bus'|'streetcar'|'subway';restSeat?:RestSeat};
 
 export type GameState={version:4;community:CommunityState;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
 export type Command={type:string;progress?:number;id?:string;name?:string;color?:string;skin?:string;point?:Point;mode?:string;path?:PathId;appearance?:Partial<Appearance>};
@@ -89,7 +89,8 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   const delay=(disrupted?(shuttle?15:7):0)+(nightBus?20:0);
   const minutes=route.minutes+beforeMin+afterMin+delay;
   const lines=[...new Set(route.legs.map(l=>LINES.find(x=>x.id===l.line)!.name))];
-  s.journey={kind:c.type==='fast'?'fast':'transit',path:[...before,...route.legs.map(l=>stopById(l.to)!.point),...after],startedAt:now,seconds:7+(disrupted?3:0),waitSeconds:2,minutes:Math.max(1,minutes),label:targetPlace?.name||to.name,destination:targetPlace?.id,detail:`${nightBus?'Blue Night bus replacement · ':''}${lines.join(' → ')||'Local connection'} · ${cost?'$3.30 tap':s.minutes<s.transferUntil?'Transfer included':'Monthly cap reached'}${disrupted?shuttle?' · Simulated closure: shuttle bus +15 min':' · Simulated traffic delay +7 min':''}`};message=`TTC journey started. ${s.journey.detail}`;break;
+  const vehicleMode=nightBus||shuttle?'bus':route.legs.some(l=>LINES.find(x=>x.id===l.line)?.mode==='subway')?'subway':route.legs.some(l=>LINES.find(x=>x.id===l.line)?.mode==='streetcar')?'streetcar':'bus';
+  s.journey={vehicleMode,kind:c.type==='fast'?'fast':'transit',path:[...before,...route.legs.map(l=>stopById(l.to)!.point),...after],startedAt:now,seconds:7+(disrupted?3:0),waitSeconds:2,minutes:Math.max(1,minutes),label:targetPlace?.name||to.name,destination:targetPlace?.id,detail:`${nightBus?'Blue Night bus replacement · ':''}${lines.join(' → ')||'Local connection'} · ${cost?'$3.30 tap':s.minutes<s.transferUntil?'Transfer included':'Monthly cap reached'}${disrupted?shuttle?' · Simulated closure: shuttle bus +15 min':' · Simulated traffic delay +7 min':''}`};message=`TTC journey started. ${s.journey.detail}`;break;
  }
  case 'arrive':case 'cancel':{
   const j=s.journey;if(!j)throw new Error('There is no journey to finish.');
