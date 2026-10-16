@@ -54,6 +54,13 @@ export function stepCrowd(actors:CrowdActor[],dt:number,player:Point,playerAhead
   // Yield into the free edge/forecourt; no movement is accepted without the same mesh/collision test.
   else if(distance(a.position,playerAhead)<2.4||distance(a.position,player)<2.4){for(const offset of [[-.36,0],[.36,0],[0,-.36],[0,.36]] as Point[]){const q:Point=[a.position[0]+offset[0]*dt*5,a.position[1]+offset[1]*dt*5];if(segmentWalkable(a.position,q)&&clearOfPeople(q,people)&&distance(q,playerAhead)>distance(a.position,playerAhead)){a.position=q;break;}}}
   if(a.progress>=1&&distance(a.position,target)<.1){a.progress=0;a.forward=!a.forward;a.wait=3;}
+  // Personal space: never let an NPC bunch on top of the player — nudge it directly away each
+  // frame (player clearance wins over NPC-to-NPC spacing, which recovers on the next steps).
+  const gapP=distance(a.position,player)||.001;if(gapP<.82){const ux=gapP>.05?(a.position[0]-player[0])/gapP:1,uz=gapP>.05?(a.position[1]-player[1])/gapP:0,out=Math.min(.12,.86-gapP);
+   const radial:Point=[a.position[0]+ux*out,a.position[1]+uz*out];
+   if(segmentWalkable(a.position,radial))a.position=radial;
+   else for(const t of [[uz,-ux],[-uz,ux]] as Point[]){const q:Point=[a.position[0]+t[0]*.14,a.position[1]+t[1]*.14];if(segmentWalkable(a.position,q)){a.position=q;break;}}
+   a.heading=Math.atan2(a.position[0]-player[0],a.position[1]-player[1]);}
  }
 }
 /** Shared swept-capsule movement used by the player renderer and regression simulations. */
