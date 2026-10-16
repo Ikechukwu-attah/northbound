@@ -121,3 +121,9 @@ test('every ordered place pair completes at the renderer frame-time cap',()=>{
   assert.equal(fraction,1,`${from.id} to ${to.id}`);
  }
 });
+test('NPCs keep personal space and never bunch on top of the player (#2)',()=>{
+ const player=[-36,-5];
+ const actors=[0,1,2,3].map(i=>({id:String(i),path:[[-48,-5],[-24,-5]],progress:.5,forward:true,wait:0,position:[-36+(i-1.5)*.25,-5],heading:0,moving:true}));
+ for(let f=0;f<900;f++)n.stepCrowd(actors,1/60,player,player);
+ for(const a of actors){assert.ok(w.distance(a.position,player)>=.6,`actor ${a.id} stays off the player (${w.distance(a.position,player).toFixed(2)})`);assert.ok(n.isWalkable(a.position),`actor ${a.id} on the mesh`);}
+});

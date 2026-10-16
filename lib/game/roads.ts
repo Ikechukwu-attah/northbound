@@ -98,7 +98,10 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
    if(shoreName){
     // Continuous waterfront road along the lake; N-S grid streets meet it at T-junctions.
     box(x+12,-.01,-1.6,24,.12,3.4,ASPHALT);for(const s of [-1,1])box(x+12,.1,-1.6+s*1.85,24,.1,.26,'#b9beb6');box(x+12,.067,-1.6,24,.028,.06,'#efc755');
-    box(x+12,.12,-3.3,24,.06,1,'#dbd7c8'); // promenade strip between road and the beach
+    box(x+12,.12,-3.5,24,.06,1,'#dbd7c8'); // promenade strip between road and the beach
+    // Connect each grid street into Queens Quay: a proper T-intersection with sidewalk links and a crosswalk.
+    for(const sdw of [-5,5])box(x+sdw,.13,-3.2,1.45,.22,3.8,'#dbd7c8');
+    for(let a=-1.3;a<1.4;a+=.55)box(x+a,.09,-1.6,.34,.025,2.6,'#f3f2e6');
     out.signs.push({x:x+6,y:4.1,z:-1.6,name:shoreName,axis:'x'});out.ends.push({x,z:-1.6,kind:'waterfront'});
    }else{
     // Scarborough: no road along the Bluffs — the street ends at a clifftop lookout with bollards.
