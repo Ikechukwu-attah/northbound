@@ -19,3 +19,16 @@ If Claude changes any of these files, preserve both behavior sets and rerun `nod
 ## Review status
 
 94 automated tests and TypeScript pass. The production build is checked before publication. Browser QA is still outstanding: no supported browser capability is available here. `PLAN.md` contains the desktop/390px acceptance checklist. Keep Phase 4 paused for the user's UI review. The new locations, schedules, prices and stipends are fictional game content, not advertised real events.
+
+## Citywide TTC follow-up — 16 October 2026
+
+Branch `codex/ttc-citywide` starts from `codex/pedestrian-passing-rest` at `98249fd`, after pulling GitHub. Rest/pedestrian fixes and Claude's merged work are retained.
+
+- Removed LegacyCity's duplicate box bus. Legacy and current district assets now share TTCBus.
+- RoadNetwork's generic boxes render cars only. Buses and newly articulated streetcars use the shared merged/instanced TTC renderer in every district; two draw calls per transit type.
+- `ttc-fleet.ts` is the common traffic factory. `ttc-streetcar.ts` supplies an original compact five-module model with bellows, rail wheels and pantograph. Reference: https://www.alstom.com/press-releases-news/2021/6/alstom-signs-contract-supply-60-new-flexity-streetcars-city-toronto . No third-party mesh is bundled.
+- Transit journeys store an optional vehicleMode. Bus connections, night replacements and shuttles show the same exterior bus at boarding/in motion; subway trips keep the existing train scene. Mixed trips show one representative mode, not a scene for each transfer. Old in-progress saves derive a mode from their existing trip details.
+- 105 automated checks pass, plus TypeScript. New regressions cover all six districts at desktop/phone quality/time budgets, geometry envelopes, bus/streetcar separation, old-renderer removal, bus connectors, subway/streetcar modes and night/shuttle replacements. Production build is required before publication.
+- Visual review remains outstanding because the available preview browser cannot create a WebGL context. Check each district, Queen/King/Spadina streetcars, a bus connector and an overnight bus trip on desktop and at 390px.
+
+Phase 4 remains unstarted. Its planned scope is multiplayer: nearby player presence, chat/friends, shared activities/housing/marketplace, moderation and server-authoritative state. Verify hosting/realtime support, guest/account identity and shared-time design before implementation; wait for the user's approval.
