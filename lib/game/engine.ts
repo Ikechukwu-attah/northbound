@@ -1,3 +1,4 @@
+import {initialCommunity,communityAction,type CommunityState} from './activities';
 import {initialLife,advanceLife,lifeAction,ECONOMY,PATHS,requireNeeds,type LifeState,type PathId} from './life';
 import {type Appearance} from './characters';
 import { PEOPLE,type DistrictId,type Need } from './data';
@@ -6,7 +7,7 @@ import {placeGeo,stopGeo,haversineMetres} from './geo';
 import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES} from './transit';
 export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number};
 
-export type GameState={version:4;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
+export type GameState={version:4;community:CommunityState;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
 export type Command={type:string;progress?:number;id?:string;name?:string;color?:string;skin?:string;point?:Point;mode?:string;path?:PathId;appearance?:Partial<Appearance>};
 export const COLORS=['#ce7551','#4f7f72','#6f86a4','#9b799c','#d7a44c'];
 export const SKINS=['#e3b88e','#b87e56','#764a35','#f1d3b5'];
@@ -17,7 +18,7 @@ export function travelEstimate(s:GameState,target:Point,id?:string,bike=false){c
 export function newGame(c:Command):GameState{
  if(c.path&&!PATHS.some(p=>p.id===c.path))throw new Error('Choose a valid starting path.');
  const name=(c.name||'').trim();if(!name||name.length>22)throw new Error('Choose a name between 1 and 22 characters.');
- const s={version:4,position:entrance(placeById('queen')!),visitedPlaces:['queen','home'],journey:null,transferUntil:0,fareMonth:fareMonth(540),paidFares:0,tripCount:0,bike:false,name,color:COLORS.includes(c.color||'')?c.color!:COLORS[0],skin:SKINS.includes(c.skin||'')?c.skin!:SKINS[1],district:'toronto',location:'queen',cash:ECONOMY.startingCash.legacy,earned:0,minutes:540,needs:{energy:90,hunger:75,fun:80,social:65,hygiene:90,bladder:90},job:'barista',shifts:0,skill:0,home:'room',visited:['toronto'],friends:{},log:[{text:'Welcome to Toronto.',day:1}],rewards:[]} as unknown as GameState; s.life=initialLife(s,c.path||'local',c.appearance);s.skin=s.life.appearance.skin;s.color=s.life.appearance.color;return s;
+ const s={version:4,community:initialCommunity(),position:entrance(placeById('queen')!),visitedPlaces:['queen','home'],journey:null,transferUntil:0,fareMonth:fareMonth(540),paidFares:0,tripCount:0,bike:false,name,color:COLORS.includes(c.color||'')?c.color!:COLORS[0],skin:SKINS.includes(c.skin||'')?c.skin!:SKINS[1],district:'toronto',location:'queen',cash:ECONOMY.startingCash.legacy,earned:0,minutes:540,needs:{energy:90,hunger:75,fun:80,social:65,hygiene:90,bladder:90},job:'barista',shifts:0,skill:0,home:'room',visited:['toronto'],friends:{},log:[{text:'Welcome to Toronto.',day:1}],rewards:[]} as unknown as GameState; s.life=initialLife(s,c.path||'local',c.appearance);s.skin=s.life.appearance.skin;s.color=s.life.appearance.color;return s;
 }
 export function day(s:GameState){return Math.floor(s.minutes/1440)+1;}
 function log(s:GameState,text:string){s.log=[{text,day:day(s)},...s.log].slice(0,50);}
@@ -31,7 +32,7 @@ export function migrateState(value:unknown):GameState{
  if((old.version as number)===1){const p=placeById(old.location)||placeById('queen')!;Object.assign(old,{version:2,position:entrance(p),district:p.district,location:p.id,visitedPlaces:Array.from(new Set([p.id,'home'])),journey:null,transferUntil:0,fareMonth:fareMonth(old.minutes),paidFares:0,tripCount:0,bike:old.visited.length>=3});}
  if(!old.life)old.life=initialLife(old,'legacy',undefined,true);
  if((old.version as number)<4){old.skill=PATHS.find(p=>p.id===old.life.path)?.skill||0;old.life.trainingHours=0;old.life.trainingStart=Math.floor(old.minutes/1440);old.position=snapPoint(old.position);if(old.journey){const j=old.journey,end=snapPoint(j.path[j.path.length-1]);if(j.kind==='walk'||j.kind==='bike')j.path=walkingPath(old.position,end);else{const stop=STOPS.find(p=>p.name===j.label);j.path[j.path.length-1]=stop?.point||end;}}old.district=districtAt(old.position);old.location=nearbyPlace(old.position)?.id||'';old.log.unshift({text:'Save updated: skill reset to your starting path; new sidewalk, needs and training rules now apply. Savings and story retained.',day:day(old)});}
- old.version=4;return old;
+ old.community??=initialCommunity();old.version=4;return old;
 }
 export function isNear(s:GameState,id:string){const p=placeById(id);return !s.journey&&!!p&&distance(s.position,entrance(p))<=3;}
 function requirePlace(s:GameState,id:string){if(!isNear(s,id))throw new Error(`Walk to ${placeById(id)?.name||'the location'} first. Activities require you to be there.`);}
@@ -43,7 +44,7 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
  const s=migrateState(original);let message='';const spot=placeById(s.location);
  if(s.journey&&!['arrive','cancel'].includes(c.type))throw new Error('Finish your journey before taking another action.');
  requireNeeds(s,c);
- const action=lifeAction(s,c);if(action!==null){log(s,action);const notifications=[action,...checkGoals(s)];return {state:s,message:action,notifications};}
+ const action=communityAction(s,c)??lifeAction(s,c);if(action!==null){log(s,action);const notifications=[action,...checkGoals(s)];return {state:s,message:action,notifications};}
  switch(c.type){
  case 'walk':case 'visit':{
   const destination=c.id?placeById(c.id):undefined;const stop=c.id?stopById(c.id.replace('stop:','')):undefined;
@@ -89,7 +90,7 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   message=fraction>=1?`Arrived at ${j.label}. ${j.minutes} game minutes travelled.`:'Walk paused. Your position and elapsed travel time are saved.';break;
  }
  case 'travel':throw new Error('Use Explore to find a visible TTC stop. District teleporting has been retired.');
- case 'talk':{const p=PEOPLE.find(p=>p.id===c.id);if(!p)throw new Error('Choose someone to talk to.');requirePlace(s,PERSON_PLACES[p.id]);s.life.animation='talk';s.life.animationUntil=now+6000;const n=s.friends[p.id]||0;advance(s,30);boost(s,{social:30,fun:12});s.friends[p.id]=n+1;message=`${p.name}: “${p.lines[n%p.lines.length]}”`;break;}
+
  default:throw new Error('That action isn’t available.');
  }if(!['walk','visit','arrive','cancel'].includes(c.type)||c.type==='arrive'&&s.location)log(s,message);const rewards=checkGoals(s);return {state:s,message,notifications:[message,...rewards]};
 }

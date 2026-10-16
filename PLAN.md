@@ -13,7 +13,7 @@ Implement **one phase at a time**. Check that phase, commit and publish it, then
 | 0 — Quick UI fixes (completed; leftovers included in Phase 1) | `components/game/Game.tsx`, `components/game/City.tsx`, `app/globals.css`; extract notification, keyboard and screen-label helpers; `lib/game/engine.ts` reward notifications; targeted regressions in `tests/` | Notifications never cover modal content and expire after ~4s; label collision handling protects the player tag; phone HUD defaults collapsed at 390px; each reward is visible; help matches available controls; WASD/arrows work after UI clicks. Publish and pause for the user's UI test. |
 | 1 — Continuous Toronto (implemented; UI review pending) | New city geography/chunk/transit data and rendering modules; replace district scene assembly in `City.tsx`; extend `navigation.ts`, game state, server movement/location rules, Explore and Home controls; append save migrations if needed | Correct district geography, nearby chunk rendering and follow camera; walking/station-based travel consumes distance-based time; activities and home actions enforce location. Original scene retained as LegacyCity; old teleport command explicitly rejected. |
 | 2 — Real-life systems (implemented; UI review pending) | New dated `config/economy.json`, calendar/opening-hour and weather configs, starting-path data, job/housing/payroll/bill/credit systems; `engine.ts`, API, state migrations, creation and finance screens | Research authoritative current values before coding; reconcile any stale/conflicting spec values explicitly. Four paths work; monthly rent/bills and fortnightly gross/net pay; all prices come from config. |
-| 3 — District activities (not started) | New places/activities/NPC schedule and conversation data; city scene locations; activity requirements, errands/gigs and unlocks in engine/API/UI | At least 8 places and 20 activities per district; at least 25% depend on date/time/season; activities and conversations require proximity. |
+| 3 — District activities (implemented; UI review pending) | New places/activities/NPC schedule and conversation data; city scene locations; activity requirements, errands/gigs and unlocks in engine/API/UI | At least 8 places and 20 activities per district; at least 25% depend on date/time/season; activities and conversations require proximity. |
 | 4 — Multiplayer (not started) | Verify hosting/auth/realtime capabilities first; add compatible account, presence/chunk subscriptions, chat/friends/shared activity/housing/marketplace and moderation systems; offline guest storage and synchronization design | Two browsers see each other move; balances remain server-authoritative; block/report work. Keep guest mode. Discuss hosting or auth constraints before committing to unsupported technology. |
 
 ## Phase 0 implementation checks
@@ -178,3 +178,28 @@ Regression coverage includes both turn directions, multiple frame increments, co
 Handoff: this follow-up is GitHub-only, as requested. The hosted game still contains the prior fix-pass version until separately deployed. Desktop and 390px browser playthroughs, visual character/portrait checks, moving crowds, lighting and phone performance remain outstanding. Automated tests are not a replacement for that UI review.
 
 Follow-up validation: all 79 automated tests pass, TypeScript passes, production build passes, and `git diff --check` is clean. Re-fetched all GitHub branches immediately before push; the three heads above were unchanged.
+
+
+## Phase 3 — district activities, 15 October 2026
+
+User explicitly authorized Phase 3 while Claude Code continues Phase 2 fixes. Before editing, fetched all GitHub branches, created `codex/phase3-district-activities` from Claude's `osm-hybrid-layer` at `61afaa5`, and ran `git pull --ff-only` against that branch. Its Phase 2 changes are retained. Deliver this phase on its own branch/PR; do not overwrite the shared working branch.
+
+- Added 18 fictional community venues on unique, walkable block footprints. Each district now has at least eight destinations; the activity board uses eight venues per district. Approximate neighbourhood coordinates extend the OSM travel system without claiming invented venues are OSM features.
+- Added 120 activities (20 per district). Nine per district have explicit time/day/season constraints, above the 25% requirement. Costs and delivery stipends live in `config/activities.json`; programmes, schedules and prices are fictional simulation content.
+- Server validates presence, opening hours through activity completion, calendar restrictions, funds, needs and unlocks. Different activities earn permanent district stamps. Three unlock workshops; six unlock hosting. Repeats are allowed on later game days without duplicate stamps.
+- Six two-stop community errands enforce physical collection and delivery, a 36-hour deadline, one delivery per district/day and single payout. Active bags persist; expired bags can be released. No deposit or lost-money penalty.
+- Nine named neighbours use the existing human/portrait system. Public schedules determine both scene presence and conversation location, respecting venue hours/holidays. Three conversation topics unlock with friendship; friendship grows at most once per person/day. Scheduled NPCs use the same collision-position list as the scene.
+- New saves and existing version 4 saves receive a separately versioned community state; cash, skills, appearance, Phase 2 life rules and active journeys are preserved. No Phase 2 skill reset is retriggered.
+- Entry points: Explore → District activities & errands, every place panel, and the primary button at new community venues. Board supports district, place, free and available-now filters. People shows appointment windows and matching portraits.
+
+Validation: all 94 automated checks pass, including 11 Phase 3 tests covering all 120 activity executions, six errand payout flows, remote-action rejection, calendar/closing-time/needs/unlock gates, scheduled world positions, dialogue limits and old-save compatibility. All prior Claude tests, city-wide walkability and ordered-place-pair movement tests pass. TypeScript passes; production build is required before publication.
+
+Browser QA remains unavailable because the managed environment lacks the required control-browser capability. No desktop or 390px browser playthrough is claimed. Phase 4 must wait for the user's Phase 3 UI test and explicit approval.
+
+### Phase 3 UI acceptance
+
+1. Desktop and 390px: open Explore → District activities & errands. Switch all six districts, filter by place/free/available now, and scroll to the last card. Check compact text and reachable buttons.
+2. Find a new venue and walk there. Complete three different activities in one district; verify stamps and workshop unlock. Try a closed or out-of-season activity and check its explanation.
+3. Collect a delivery at an exchange, reload, walk to its makers room and deliver. Confirm the stipend is paid once. Release an expired delivery without a penalty.
+4. Open People. Visit Maya or a district host during their displayed schedule; check the matching 3D person and portrait, topic unlocks, and once-per-day friendship growth. Return outside the appointment window.
+5. Reload an existing save and continue its money, skills and journey. Check new place labels and crowd performance while Claude's Phase 2 road and camera fixes remain present.

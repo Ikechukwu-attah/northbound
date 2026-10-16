@@ -1,0 +1,6 @@
+{
+  "note": "Fictional game activities and stipends, in CAD cents; not real venue prices or event schedules.",
+  "costs": {"snack": 500, "coffee": 350, "studio": 800, "repair": 0, "lunch": 900, "market": 400, "workshop": 1200, "host": 0},
+  "errandReward": 1800,
+  "errandDeadlineMinutes": 2160
+}

@@ -1,3 +1,4 @@
+import {peopleAt,personAt} from './schedules';
 import {BLOCK,BOUNDS,PLACES,PERSON_PLACES,placeById,distance,sidewalk,inBounds,pointAlong,pathLength,type Point} from './world';
 import {makeRoadTiles,roadAt} from './roads';
 import {STOPS} from './transit';
@@ -42,8 +43,9 @@ export function lanePoint(path:Point[],fraction:number):Point{
 export type CrowdActor={id:string;path:Point[];progress:number;forward:boolean;wait:number;position:Point;heading:number;moving:boolean};
 export function clearOfPeople(p:Point,people:Point[],gap=PERSON_RADIUS*2+.04){return people.every(q=>distance(p,q)>=gap);}
 export const namedPosition=(id:string):Point=>{const p=placeById(PERSON_PLACES[id])!;return [p.x+2,p.z+5.8];};
-export function stepCrowd(actors:CrowdActor[],dt:number,player:Point,playerAhead:Point=player){
- dt=Math.min(.06,dt);const named=Object.keys(PERSON_PLACES).map(namedPosition);
+export const scheduledPositions=(minutes:number):Point[]=>peopleAt(minutes).map(p=>{const spot=placeById(p.place)!;return [spot.x+2,spot.z+5.8];});
+export function stepCrowd(actors:CrowdActor[],dt:number,player:Point,playerAhead:Point=player,minutes=540){
+ dt=Math.min(.06,dt);const named=scheduledPositions(minutes);
  for(const a of actors){a.moving=false;const others=actors.filter(b=>b!==a).map(b=>b.position);const people=[player,...named,...others];
   if(a.wait>0){a.wait-=dt;if(distance(a.position,player)>3)continue;}
   const len=pathLength(a.path)||1,progress=Math.min(1,a.progress+dt*1.15/len),path=a.forward?a.path:[...a.path].reverse();const target=lanePoint(path,progress);const dx=target[0]-a.position[0],dz=target[1]-a.position[1],n=Math.hypot(dx,dz)||1,step=Math.min(dt*1.5,n);

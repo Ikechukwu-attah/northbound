@@ -6,4 +6,4 @@ export function cleanAppearance(value:Partial<Appearance>|undefined):Appearance{
 export function npcAppearance(seed:number):Appearance{return {...defaultAppearance,model:seed%2?'a':'b',skin:SKIN_TONES[seed%8],hair:HAIR_COLORS[Math.floor(seed/3)%8],hairstyle:(['short','bob','curly','long','bald'] as const)[Math.floor(seed/7)%5],body:(['slim','average','broad'] as const)[seed%3],face:(['soft','angular','round'] as const)[Math.floor(seed/11)%3],height:[.9,1,1.1][Math.floor(seed/5)%3],outfit:(['casual','smart','sport'] as const)[Math.floor(seed/13)%3],color:['#c16c4f','#4f796a','#6d83a0','#b8954c','#8d6d91','#74834f'][Math.floor(seed/17)%6]};}
 export type HumanAction='idle'|'walk'|'run'|'sit'|'wait'|'wave'|'talk'|'phone'|'coffee'|'bike'|'bag';
 
-export const namedAppearance=(id:string)=>npcAppearance(({maya:231,dev:354,amina:477} as Record<string,number>)[id]||231);
+export const namedAppearance=(id:string)=>npcAppearance(({maya:231,dev:354,amina:477,leo:612,hana:725,ravi:856,ines:983,kwame:1107,jo:1238} as Record<string,number>)[id]||231);

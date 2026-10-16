@@ -9,8 +9,9 @@ import Crowds from './Crowds';
 import {RoadNetwork,Traffic} from './RoadNetwork';
 import TransitScene from './TransitScene';
 import {namedAppearance,type HumanAction} from '@/lib/game/characters';
+import {peopleAt} from '@/lib/game/schedules';
 import {daylightAt} from '@/lib/game/solar';
-import {lanePoint,advanceWalker,namedPosition} from '@/lib/game/navigation';
+import {lanePoint,advanceWalker,namedPosition,scheduledPositions} from '@/lib/game/navigation';
 import {journeyFraction} from '@/lib/game/engine';
 import {seasonAt,weatherAt} from '@/lib/game/calendar';
 import type {Spot} from '@/lib/game/data';
@@ -47,7 +48,7 @@ function Scene({game,selected,player,reset,onSpot,onStop,onWalk,onReady,onJourne
   if(j&&['walk','bike'].includes(j.kind)){
    if(movement.current.id!==j.startedAt){movement.current={id:j.startedAt,fraction:journeyFraction(j),done:false};if(movement.current.fraction>.1||previous.lengthSq()===0){const initial=lanePoint(j.path,movement.current.fraction);g.position.set(initial[0],0,initial[1]);previous.copy(g.position);}}
    const nextFraction=Math.min(1,movement.current.fraction+Math.min(dt,.06)/(j.seconds-j.waitSeconds));const next=lanePoint(j.path,nextFraction);const current:Point=[g.position.x,g.position.z];g.userData.nextPoint=next;
-   const people=[...pedestrianPositions.current.values(),...['maya','dev','amina'].map(namedPosition)];
+   const people=[...pedestrianPositions.current.values(),...scheduledPositions(game?.minutes||540)];
    const step=advanceWalker(current,j.path,movement.current.fraction,nextFraction-movement.current.fraction,people);movement.current.fraction=step.fraction;pos=step.position;
    onJourneyProgress(j.startedAt,movement.current.fraction);
    if(movement.current.fraction>=1&&!movement.current.done){movement.current.done=true;onJourneyReady(j.startedAt);}
@@ -65,7 +66,7 @@ function Scene({game,selected,player,reset,onSpot,onStop,onWalk,onReady,onJourne
  <Weather centre={centre} minutes={game?.minutes||540}/>{winter&&cells.filter(c=>c[1]<0).map(c=><Box key={c.join()} p={[c[0]*24+12,.01,c[1]*24+12]} s={[14,.07,14]} c="#e6ece6"/>)}<RoadNetwork cells={cells} onClick={click} minutes={sceneMinutes}/><group onClick={click}>{cells.map(c=><Chunk key={c.join(',')} cell={c}/>)}</group>
  {nearby.map(p=><group key={p.id} onClick={e=>{e.stopPropagation();if(e.delta<5)onSpot(p)}}>{p.kind==='park'?<Park spot={p}/>:p.kind==='landmark'?<Landmark spot={p} district={p.district}/>:<Store spot={p}/>}<mesh position={[p.x,.2,p.z+7]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.7,1,20]}/><meshBasicMaterial color={selected===p.id?'#fff5a1':'#f6e8c5'}/></mesh></group>)}
  {stops.map(s=><group key={s.id} position={[s.point[0]+1.5,0,s.point[1]-1.5]} onClick={e=>{e.stopPropagation();if(e.delta<5)onStop(s.id)}}><Cylinder r={.09} h={3.8} p={[0,1.9,0]} c="#59675c"/><Box p={[0,3.3,0]} s={[1.5,.9,.2]} c="#d43f3a"/><Box p={[0,3.3,.12]} s={[1,.18,.03]} c="#fff8e5"/><Box p={[1.6,1.1,0]} s={[1.9,2.2,.15]} c="#9fb6ae"/><Box p={[1.6,2.3,0]} s={[2.2,.15,1.4]} c="#60796e"/></group>)}
- {Object.entries(PERSON_PLACES).map(([id,place],i)=>{const p=nearby.find(p=>p.id===place);return p?<group key={id} position={[namedPosition(id)[0],0,namedPosition(id)[1]]}><Human appearance={namedAppearance(id)} action={i===0?'coffee':i===1?'wave':'talk'} minutes={game?.minutes||540} scale={1.8}/></group>:null})}
+ {peopleAt(game?.minutes||540).map(({id,place},i)=>{const p=nearby.find(p=>p.id===place);return p?<group key={id} position={[p.x+2,0,p.z+5.8]}><Human appearance={namedAppearance(id)} action={i%3===0?'coffee':i%3===1?'wave':'talk'} minutes={game?.minutes||540} scale={1.8}/></group>:null})}
 
  <group ref={avatar}>{riding?<group><Box p={[0,.8,0]} s={[2,1.3,5.4]} c="#da291c"/><Box p={[0,1.6,0]} s={[2,.8,5.4]} c="#f4eee0"/><Box p={[0,1.65,0]} s={[2.05,.55,4.9]} c="#2e4145"/><Box p={[0,2.1,0]} s={[2.1,.18,5.5]} c="#eee8d8"/>{[-1,1].map(x=>[-1.6,1.6].map(z=><mesh key={x+','+z} position={[x,.4,z]} rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.4,.4,.2,10]}/><meshStandardMaterial color="#303b38"/></mesh>))}</group>:<Human appearance={game?.life.appearance} action={game?.journey?(game.journey.kind==='bike'?'bike':game.journey.kind==='walk'?'walk':'wait'):game&&game.life.animationUntil>Date.now()?game.life.animation as HumanAction:'idle'} minutes={game?.minutes||540}/>}<mesh renderOrder={5} position={[0,.3,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.8,1.12,40]}/><meshBasicMaterial color="#baff65" depthTest={false}/></mesh></group>
  <Traffic cells={cells} minutes={game?.minutes||540} quality={quality} avatar={avatar} pedestrians={pedestrianPositions}/><Crowds playerStart={game?.position||spawn} avatar={avatar} positions={pedestrianPositions} centre={centre} minutes={game?.minutes||540} quality={quality}/><ProjectedLabels refs={labelRefs} spots={LABELS} selected={selected} avatar={avatar}/>
