@@ -1,3 +1,4 @@
+import {nearestRestSeat,type RestSeat} from './seating';
 import {initialCommunity,communityAction,type CommunityState} from './activities';
 import {initialLife,advanceLife,lifeAction,ECONOMY,PATHS,requireNeeds,type LifeState,type PathId} from './life';
 import {type Appearance} from './characters';
@@ -5,7 +6,7 @@ import { PEOPLE,type DistrictId,type Need } from './data';
 import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,districtAt,nearbyPlace,snapPoint,nearestPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
 import {placeGeo,stopGeo,haversineMetres} from './geo';
 import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES} from './transit';
-export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number};
+export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number;restSeat?:RestSeat};
 
 export type GameState={version:4;community:CommunityState;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
 export type Command={type:string;progress?:number;id?:string;name?:string;color?:string;skin?:string;point?:Point;mode?:string;path?:PathId;appearance?:Partial<Appearance>};
@@ -44,13 +45,23 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
  const s=migrateState(original);let message='';const spot=placeById(s.location);
  if(s.journey&&!['arrive','cancel'].includes(c.type))throw new Error('Finish your journey before taking another action.');
  requireNeeds(s,c);
+ const seated=s.life.restSeat;
+ if(['walk','visit','transit','fast'].includes(c.type))delete s.life.restSeat;
  const action=communityAction(s,c)??lifeAction(s,c);if(action!==null){log(s,action);const notifications=[action,...checkGoals(s)];return {state:s,message:action,notifications};}
  switch(c.type){
- case 'walk':case 'visit':{
+ case 'rest':{
+  if(seated){advance(s,60);boost(s,{energy:30,fun:10});message='Another hour of rest on the bench restores your energy.';break;}
+  const {seat,path}=nearestRestSeat(s.position);
+  const approach=path;
+  delete s.life.restSeat;
+  s.journey={kind:'walk',path:approach,startedAt:now,seconds:Math.max(1,pathLength(approach)/2),minutes:Math.max(0,Math.ceil(pathLength(approach)/2)),label:'Roadside bench',detail:'Walk to the recessed seat · then rest 1 hour for free',waitSeconds:0,restSeat:seat};
+  message='Walking to a nearby bench. The sidewalk stays clear while you rest.';break;
+ }
+ case 'walk' :case 'visit':{
   const destination=c.id?placeById(c.id):undefined;const stop=c.id?stopById(c.id.replace('stop:','')):undefined;
   const target:Point|undefined=destination?entrance(destination):stop?.point||c.point;
   if(!target||!Array.isArray(target)||target.length!==2||!onSidewalk(target))throw new Error('Choose a valid sidewalk, place or stop.');
-  const path=walkingPath(s.position,target),length=pathLength(path),bike=c.mode==='bike';
+  const route=walkingPath(s.position,target),path=seated?[seated.point,seated.access,...route.slice(1)]:route,length=pathLength(path),bike=c.mode==='bike';
   if(bike&&(s.needs.energy<20||s.needs.bladder<15))throw new Error('Too exhausted or uncomfortable to cycle. Walk to a bathroom or a place to rest.');
   if(bike&&!s.bike)throw new Error('Explore three districts to unlock the community loan bike.');
   if(length<.1)throw new Error('You are already here.');
@@ -86,7 +97,9 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   if(c.type==='arrive'&&!finished)throw new Error('You are still on your way.');
   if(c.type==='cancel'&&!finished&&j.kind!=='walk'&&j.kind!=='bike')throw new Error('Stay aboard until your selected stop.');
   const cancelled=c.type==='cancel'&&(j.kind==='walk'||j.kind==='bike');const fraction=cancelled&&typeof c.progress==='number'&&Number.isFinite(c.progress)?Math.max(0,Math.min(journeyFraction(j,now),c.progress)):finished?1:journeyFraction(j,now),p=pointAlong(j.path,fraction);
-  advance(s,fraction>=1?j.minutes:Math.max(0,Math.ceil(j.minutes*fraction)));s.journey=null;settlePosition(s,p);
+  advance(s,fraction>=1?j.minutes:Math.max(0,Math.ceil(j.minutes*fraction)));s.journey=null;settlePosition(s,onSidewalk(p)?p:snapPoint(p));
+  if(j.restSeat&&fraction>=1&&c.type==='arrive'){settlePosition(s,j.restSeat.access);s.life.restSeat=j.restSeat;advance(s,60);boost(s,{energy:30,fun:10});s.life.animation='sit';s.life.animationUntil=0;message='An hour of seated rest restores your energy. The sidewalk is clear for others.';break;}
+  if(j.restSeat&&fraction>=1)settlePosition(s,j.restSeat.access);
   message=fraction>=1?`Arrived at ${j.label}. ${j.minutes} game minutes travelled.`:'Walk paused. Your position and elapsed travel time are saved.';break;
  }
  case 'travel':throw new Error('Use Explore to find a visible TTC stop. District teleporting has been retired.');
