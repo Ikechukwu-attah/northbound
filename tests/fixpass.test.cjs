@@ -45,7 +45,7 @@ test('Toronto date-based solar times match mid October and handle DST',()=>{
  const minute=(y,m,d)=>(Date.UTC(y,m-1,d)-Date.UTC(2026,9,14))/60000;const before=solar.solarTimes(minute(2026,10,31)),after=solar.solarTimes(minute(2026,11,1));assert.ok(before.sunrise-after.sunrise>55&&before.sunrise-after.sunrise<65);
 });
 test('critical needs force rest and limit nonessential actions while washrooms remain accessible',()=>{
- let s=at(fresh(),'queen');s.needs.energy=0;for(const type of ['walk','wait','talk','apply'])assert.throws(()=>act(s,type,'home'),/must rest/);s=act(s,'rest');assert.ok(s.needs.energy>=20);
+ let s=at(fresh(),'queen');s.needs.energy=0;for(const type of ['walk','wait','talk','apply'])assert.throws(()=>act(s,type,'home'),/must rest/);s=finish(act(s,'rest'));assert.ok(s.needs.energy>=20);
  s.needs.bladder=0;for(const type of ['talk','wait','apply','view_home','groceries'])assert.throws(()=>act(s,type,'room'),/bathroom/);s=act(s,'bathroom');assert.ok(s.needs.bladder>90);
  s.position=t.stopById('sheppard').point;s.location='';assert.ok(l.washroomHere(s));s=act(s,'bathroom');s.position=t.stopById('union').point;assert.equal(l.washroomHere(s),false);
  s=at(s,'stc');s.minutes=600;assert.ok(l.washroomHere(s));
@@ -126,4 +126,44 @@ test('NPCs keep personal space and never bunch on top of the player (#2)',()=>{
  const actors=[0,1,2,3].map(i=>({id:String(i),path:[[-48,-5],[-24,-5]],progress:.5,forward:true,wait:0,position:[-36+(i-1.5)*.25,-5],heading:0,moving:true}));
  for(let f=0;f<900;f++)n.stepCrowd(actors,1/60,player,player);
  for(const a of actors){assert.ok(w.distance(a.position,player)>=.6,`actor ${a.id} stays off the player (${w.distance(a.position,player).toFixed(2)})`);assert.ok(n.isWalkable(a.position),`actor ${a.id} on the mesh`);}
+});
+
+test('pedestrians actually pass a stationary player from both directions, including the waterfront',()=>{
+ for(const z of [-5,-29,-317])for(const offset of [-.36,0,.36]){
+  const player=[-36,z+offset],paths=[[[-60,z],[-12,z]],[[-12,z],[-60,z]]];
+  const actors=paths.map((path,i)=>({id:String(i),path,progress:0,forward:true,wait:0,position:n.lanePoint(path,0),heading:0,moving:false}));
+  const passed=[false,false];
+  for(let frame=0;frame<3000;frame++){
+   n.stepCrowd(actors,1/60,player);
+   for(const [i,a]of actors.entries()){assert.ok(n.isWalkable(a.position));assert.ok(w.distance(a.position,player)>=.68-1e-5);if(i===0?a.position[0]>-34:a.position[0]<-38)passed[i]=true;}
+   assert.ok(w.distance(actors[0].position,actors[1].position)>=.68-1e-5);
+  }
+  assert.deepEqual(passed,[true,true],`player at ${player} must not hold up either direction`);
+ }
+});
+test('every place has a reachable recessed seat and both approach and departure animate to completion',()=>{
+ const seating=require('../work/fixpass-test/seating.js');
+ for(const p of w.PLACES){
+  const {seat,path}=seating.nearestRestSeat(w.entrance(p));assert.ok(w.distance(seat.point,seat.access)>=1);assert.ok(n.isWalkable(seat.point));
+  for(const route of [path,[seat.point,...w.walkingPath(seat.access,[-60,-29])]]){
+   let pos=route[0],fraction=0;
+   for(let i=0;i<10000&&fraction<1;i++){const next=n.advanceWalker(pos,route,fraction,.005,[]);assert.ok(next.fraction>fraction,`${p.id}: stuck approaching/leaving bench at ${pos}`);pos=next.position;fraction=next.fraction;}
+   assert.equal(fraction,1);
+  }
+ }
+});
+test('rest walks to a bench before recovery, saves the seat, and cannot award recovery on cancellation or twice',()=>{
+ let s=at(fresh(),'queen');s.needs.energy=0;const before=s.minutes;
+ const walking=act(s,'rest'),j=walking.journey;assert.ok(j.restSeat);assert.equal(walking.needs.energy,0);assert.equal(walking.minutes,before);
+ assert.throws(()=>e.applyCommand(walking,{type:'arrive'},j.startedAt+1),/still on/);
+ const cancelled=e.applyCommand(walking,{type:'cancel',progress:.5},j.startedAt+j.seconds*500).state;assert.equal(cancelled.needs.energy,0);assert.ok(!cancelled.life.restSeat);assert.ok(w.onSidewalk(cancelled.position));
+ s=finish(walking);assert.equal(s.journey,null);assert.ok(s.needs.energy>=20);assert.equal(s.minutes,before+j.minutes+60);assert.deepEqual(s.life.restSeat,j.restSeat);
+ assert.deepEqual(e.migrateState(JSON.parse(JSON.stringify(s))).life.restSeat,j.restSeat);assert.throws(()=>act(s,'arrive'),/no journey/);
+ const leaving=act(s,'walk','home');assert.deepEqual(leaving.journey.path[0],j.restSeat.point);assert.ok(!leaving.life.restSeat);
+});
+test('an occupied roadside bench leaves passing lanes clear',()=>{
+ const seat=require('../work/fixpass-test/seating.js').seatInCell(-2,-2);
+ const path=[[-60,-29],[-12,-29]],actors=[path,[...path].reverse()].map((path,i)=>({id:String(i),path,progress:0,forward:true,wait:0,position:n.lanePoint(path,0),heading:0,moving:false}));
+ for(let frame=0;frame<2600;frame++){n.stepCrowd(actors,1/60,seat.point);for(const a of actors)assert.ok(w.distance(a.position,seat.point)>=.68-1e-5);}
+ assert.ok(actors[0].position[0]>-20&&actors[1].position[0]<-52);
 });

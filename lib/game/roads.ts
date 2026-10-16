@@ -44,7 +44,7 @@ export function roadAt(axis:Axis,coordinate:number,along=0):Road{
 export const junctionKey=(x:number,z:number)=>`${x},${z}`;
 export function signalAt(x:number,z:number,seconds:number,axis:Axis):'green'|'amber'|'red'{const phase=((seconds+(Math.round(x/24)*3+Math.round(z/24)*5))%32+32)%32;const start=axis==='z'?0:16;return phase>=start&&phase<start+11?'green':phase>=start+11&&phase<start+13?'amber':'red';}
 export const signalized=(x:number,z:number)=>roadAt('z',x,z).arterial||roadAt('x',z,x).arterial;
-export type Piece={p:[number,number,number];s:[number,number,number];c:string;r?:number};
+export type Piece={p:[number,number,number];s:[number,number,number];c:string;r?:number;seat?:boolean};
 export type Sign={x:number;y:number;z:number;name:string;axis:Axis};
 export type TileData={boxes:Piece[];trees:Piece[];stops:Piece[];signs:Sign[];lights:{x:number;z:number;axis:Axis;p:[number,number,number]}[];blocks:{x:number;z:number;kind:string}[];ends:{x:number;z:number;kind:string}[]};
 // Medium charcoal carriageway under the pastel palette; wear shades patch it subtly.
@@ -78,11 +78,16 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
   else if(parking){for(let a=8;a<18;a+=2.4){box(x+a,.095,z+9,.08,.025,3.3,'#f1e5cb');box(x+a,.095,z+16,.08,.025,3.3,'#f1e5cb');}box(x+12,.095,z+7.4,11,.025,.08,'#f1e5cb');box(x+12,.095,z+17.6,11,.025,.08,'#f1e5cb');for(const a of [9,14]){box(x+a,.5,z+9,1.2,.65,2.4,a===9?'#a25543':'#c3c8bd');box(x+a,.95,z+9,1.05,.45,1.3,'#365660');}if(!dense){const pc=wall(3);box(x+12,1.7,z+11.8,12,3.1,3.4,pc);box(x+12,3.35,z+11.8,12.3,.4,3.7,'#d8cdb6');for(let a=-4.5;a<5;a+=2.2)box(x+12+a,1.5,z+13.4,1.6,1.4,.06,win(a,true));box(x+5.5,3.6,z+17.6,.4,3,.4,'#8a8f8c');box(x+5.5,5,z+17.6,2.1,1,.12,['#c2584a','#466a8a','#2f6d55'][seed%3]);}tree(x+18,z+12,seed);}
   else if(dense){if(district==='toronto'){seed%4===0?tower(x+12,z+12,seed):seed%4===1?stone(x+12,z+12,seed):shopRow(x+12,z+12,seed);box(x+12,.105,z+16.5,12,.05,1.6,'#4a4f4d');}else{seed%3===0?slab(x+12,z+12,seed):tower(x+12,z+12,seed);}}
   else {if(seed%6===0)slab(x+12,z+12,seed);else{for(const [hx,hz]of [[8.5,8.5],[15.5,8.5],[8.5,14.2],[15.5,14.2]] as const)house(x+hx,z+hz,seed+hx+hz);for(const dx of [8.5,15.5])box(x+dx,.1,z+12,1.6,.06,5,'#ccbfa6');}}
+  // Recessed rest bay: the seat and its occupant leave both through lanes open.
+  box(x+12,.13,z+18.15,2.2,.22,2.4,'#dbd7c8');
+  box(x+12,.85,z+17.8,1.7,.16,.65,'#a17b51');out.boxes[out.boxes.length-1].seat=true;
+  box(x+12,1.26,z+17.4,1.7,.65,.12,'#b58e61');
+  for(const leg of [-.62,.62]){box(x+12+leg,.46,z+17.8,.12,.75,.45,'#485650');out.boxes[out.boxes.length-1].seat=true;}
   for(const axis of ['x','z'] as Axis[]){const road=roadAt(axis,axis==='x'?z:x,axis==='x'?x:z);const put=(along:number,across:number,y:number,length:number,width:number,height:number,c:string)=>axis==='x'?box(x+along,y,z+across,length,height,width,c):box(x+across,y,z+along,width,height,length,c);
    // Clip N-S streets at the shore so they stop at the waterfront road / lookout, not in the lake.
    const shoreNS=cz===-1&&axis==='z',shoreEnd=district==='scarborough'?-3.2:-1.6,rLen=shoreNS?shoreEnd+24:24,rMid=shoreNS?(shoreEnd+24)/2:12;
    put(rMid,0,-.01,rLen,road.width,.12,ASPHALT);for(const w of [6,18])if(w<rLen)put(w,((seed+w)%2?1:-1)*road.width/4,.055,2.6+seed%2,road.width/3,.03,WEAR[(seed+w)%3]);
-   for(const side of [-1,1]){put(12,side*5,.13,14,1.45,.22,'#dbd7c8');put(12,side*(road.width/2+.1),.13,11,.18,.27,'#b9beb6');
+   for(const side of [-1,1]){put(12,side<0?-5.2125:5,.13,14,side<0?1.875:1.45,.22,'#dbd7c8');put(12,side*(road.width/2+.1),.13,11,.18,.27,'#b9beb6');
     if(road.bike){put(12,side*(road.width/2+.55),.06,11,.75,.055,'#438a69');put(12,side*(road.width/2+.96),.1,11,.07,.02,'#dfebda');}
     if(road.arterial){put(12,side*.1,.067,11,.065,.025,'#efc755');for(let lane=1;lane<road.lanes/2;lane++)for(const a of [7.7,11.7,15.7])put(a,side*lane*road.laneWidth,.07,2,.065,.025,'#e6e9df');}
     if(road.tracks)for(const rail of [-.36,.36])put(rMid,side*road.laneWidth/2+rail,.09,rLen,.08,.045,'#8a8f8c');
@@ -115,7 +120,7 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
   for(const axis of ['x','z'] as Axis[]){const road=axis==='x'?ew:ns;const put=(along:number,across:number,y:number,length:number,width:number,height:number,c:string)=>axis==='x'?box(x+along,y,z+across,length,height,width,c):box(x+across,y,z+along,width,height,length,c);
    for(const side of [-1,1]){
     // Mark every navigable crossing; local intersections retain stop signs.
-    {for(let across=-road.width/2+.3;across<road.width/2;across+=.65)put(side*5,across,.09,1.4,.35,.025,'#f3f2e6');put(side*6.25,(axis==='x'?-side:side)*road.width/4,.09,.17,road.width/2-.15,.025,'#f5f1dc');
+    {for(let across=-road.width/2+.3;across<road.width/2;across+=.65)put(side<0?-5.2125:5,across,.09,side<0?1.875:1.4,.35,.025,'#f3f2e6');put(side*6.25,(axis==='x'?-side:side)*road.width/4,.09,.17,road.width/2-.15,.025,'#f5f1dc');
      for(const edge of [-1,1]){put(side*5,edge*(5.8+road.width/2)/2,.085,1.6,5.8-road.width/2,.09,'#c5c5b8');put(side*5,edge*(road.width/2+.2),.14,1.1,.35,.035,'#d1ad54');}}
     const px=axis==='x'?x+side*5.9:x-side*5.9,pz=axis==='x'?z+side*5.9:z+side*5.9;
     box(px,1.8,pz,.12,3.6,.12,'#4a5754');
