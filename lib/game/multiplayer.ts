@@ -1,0 +1,10 @@
+import type {Appearance,HumanAction} from './characters';
+import type {GameState,Journey} from './engine';
+import type {Point} from './world';
+export type Peer={id:string;name:string;position:Point;appearance:Appearance;action:HumanAction;journey:Journey|null;minutes:number;lastSeen:number};
+export type SocialPerson={id:string;name:string;online:boolean};
+export type SharedSession={id:string;host:string;guest:string|null;hostName:string;guestName:string;kind:string;place:string;status:string;expiresAt:number;rent?:number};
+export type SharedListing={id:string;seller:string;sellerName:string;place:string;price:number};
+export type CommunitySnapshot={serverTime:number;self:{id:string;online:boolean};state:GameState;revision:number;peers:Peer[];friends:(SocialPerson&{status:string;incoming:boolean})[];blocked:SocialPerson[];messages:{id:number;author:string;name:string;body:string;createdAt:number}[];sessions:SharedSession[];listings:SharedListing[]};
+export type SocialCommand={type:string;target?:string;id?:string;body?:string;reason?:string;messageId?:number;price?:number};
+export const PRESENCE_TTL=15000;
