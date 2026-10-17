@@ -1,11 +1,9 @@
-import {getChatGPTUser} from '@/app/chatgpt-auth';
+import {player} from '@/lib/server/player';
 import {getDb} from '@/db';
-import {guestIdentity} from '@/lib/game/guest';
 import {games} from '@/db/schema';
 import {and,eq} from 'drizzle-orm';
 import {applyCommand,newGame,migrateState,type Command,type GameState} from '@/lib/game/engine';
 export const dynamic='force-dynamic';
-async function player(request:Request){const account=await getChatGPTUser();return account?{userId:account.userId,cookie:null}:guestIdentity(request.headers.get('cookie'));}
 function responder(cookie:string|null){return (body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store',...(cookie?{'Set-Cookie':cookie}:{})}});}
 export async function GET(request:Request){const user=await player(request);const response=responder(user.cookie);const rows=await getDb().select().from(games).where(eq(games.userId,user.userId)).limit(1);const row=rows[0];return response({state:row?migrateState(JSON.parse(row.state)):null,revision:row?.revision??0});}
 export async function POST(request:Request){
