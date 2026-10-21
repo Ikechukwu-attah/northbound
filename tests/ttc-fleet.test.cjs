@@ -27,5 +27,6 @@ test('legacy districts and live traffic cannot fall back to the removed box bus'
  assert.match(source('CityAssets.tsx'),/<TTCBus kind=\{streetcar\?'streetcar':'bus'\}/);
  assert.match(source('RoadNetwork.tsx'),/if\(v.kind!=='car'\)continue/);
  assert.match(source('RoadNetwork.tsx'),/<TTCBusTraffic vehicles=\{vehicles\}\/>(<TTCBusTraffic vehicles=\{vehicles\} kind="streetcar"\/>)/);
- assert.match(source('TransitScene.tsx'),/<TTCBus kind=\{kind\}/);
+ assert.match(source('TransitScene.tsx'),/<VehicleCabin t=\{t\}/);
+ assert.match(source('interiors/TransitKit.tsx'),/<TTCBus kind=\{t.mode/);
 });

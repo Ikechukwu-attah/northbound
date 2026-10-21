@@ -4,7 +4,10 @@ import {makeRoadTiles,roadAt} from './roads';
 import {STOPS,LINES} from './transit';
 export const PERSON_RADIUS=.32, WALK_HALF_WIDTH=.725;
 // Only surface (bus/streetcar) stops have a street waiting shelter; subway stations are entrances.
-const SHELTER_STOPS=new Set(STOPS.map(s=>s.id).filter(id=>!LINES.some(l=>l.mode==='subway'&&l.stops.includes(id))));
+// world → navigation → transit → world is a shared runtime dependency cycle.
+// Read transit data only after module initialization, when navigation is used.
+let shelterStops:Set<string>|undefined;
+function getShelterStops(){return shelterStops??=new Set(STOPS.map(s=>s.id).filter(id=>!LINES.some(l=>l.mode==='subway'&&l.stops.includes(id))));}
 export type Obstacle={x:number;z:number;halfX:number;halfZ:number};
 const obstacles=new Map<string,Obstacle[]>();
 /** The navigation mesh is the union of paved sidewalk/crossing rectangles and public forecourts.
@@ -29,7 +32,7 @@ export function staticObstacles(p:Point){const cx=Math.floor(p[0]/24),cz=Math.fl
   if(s.kind!=='park')result.push({x:s.x,z:s.z,halfX:s.kind==='landmark'?4.5:4.3,halfZ:4.4});
   if(s.kind==='cafe')result.push({x:s.x+5.4,z:s.z+1,halfX:1.25,halfZ:1.25});
  }
- for(const s of STOPS.filter(s=>SHELTER_STOPS.has(s.id)&&distance(s.point,p)<48)){result.push({x:s.point[0]+1.5,z:s.point[1]-1.5,halfX:.1,halfZ:.1},{x:s.point[0]+3.1,z:s.point[1]-1.5,halfX:1.1,halfZ:.2});}
+ for(const s of STOPS.filter(s=>getShelterStops().has(s.id)&&distance(s.point,p)<48)){result.push({x:s.point[0]+1.5,z:s.point[1]-1.5,halfX:.1,halfZ:.1},{x:s.point[0]+3.1,z:s.point[1]-1.5,halfX:1.1,halfZ:.2});}
  result=result.filter(o=>Math.abs(o.x-(cx*24+12))<=13+o.halfX&&Math.abs(o.z-(cz*24+12))<=13+o.halfZ);if(obstacles.size>800)obstacles.clear();obstacles.set(key,result);return result;
 }
 export function isWalkable(p:Point,radius=PERSON_RADIUS){return !!navSurface(p,radius)&&!staticObstacles(p).some(o=>Math.abs(p[0]-o.x)<o.halfX+radius&&Math.abs(p[1]-o.z)<o.halfZ+radius);}

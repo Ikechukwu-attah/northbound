@@ -84,6 +84,8 @@
 .transit-station-banner strong{font:700 18px/1 Georgia,serif}
 .transit-station-banner em{font-style:normal;font:700 10px/1 Arial,sans-serif;padding:3px 7px;border-radius:6px;color:#14211f}
 @media(max-width:620px){.transit-station-banner{top:120px;padding:6px 12px;gap:7px}.transit-station-banner strong{font-size:15px}}
+
+.transit-view-switch{position:absolute;top:166px;right:18px;z-index:14;display:flex;gap:3px;padding:3px;border-radius:10px;background:#e9e6d9;border:1px solid #bac3b8;box-shadow:0 3px 12px #243b3030}.transit-view-switch button{padding:8px 11px;font:600 12px Arial;color:#354d44;border:0;border-radius:7px;background:transparent;cursor:pointer;min-height:36px}.transit-view-switch button[aria-pressed=true]{background:#294d42;color:#fff6db}@media(max-width:620px){.transit-view-switch{top:137px;right:9px}.transit-view-switch button{font-size:10px;padding:6px 8px;min-height:32px}}
 /* Transit/café review: larger touch targets for in-scene popups. */
 .object-actions button:not(.object-dismiss),.home-door-marker,.object-label{min-height:38px}
 @media(max-width:620px){
