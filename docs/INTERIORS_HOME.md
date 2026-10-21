@@ -1,5 +1,7 @@
 # Interiors step 1: homes and player names
 
+This initial release was accepted by the user. See [INTERIORS_CAFE.md](INTERIORS_CAFE.md) for the subsequent home fixes and café review build.
+
 This change is stacked on `codex/phase4-multiplayer` so Claude's existing work is preserved. UI review is required before the next interiors step, following the project review workflow.
 
 ## Delivered
