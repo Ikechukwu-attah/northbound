@@ -4,11 +4,15 @@ import {advanceLife} from './life';
 import {FARE,LINES,nearestStop,stopById,transitRoute,serviceOpen,fareMonth,type Leg} from './transit';
 import {distance,pathLength,pointAlong,districtAt,nearbyPlace,type Point} from './world';
 import {interiorPath,type HomeLayout} from './interiors';
-export type TransitState={origin:string;destination:string;legs:Leg[];index:number;stage:'entrance'|'platform'|'boarding'|'riding'|'arrival'|'exit';mode:'subway'|'bus'|'streetcar';night:boolean;paid:boolean;validated?:boolean;requested:boolean;paidArea?:boolean;readyAt:number;position:Point;seat?:string;movement?:{path:Point[];startedAt:number;seconds:number;object?:string}};
+export type TransitState={origin:string;destination:string;legs:Leg[];index:number;stage:'entrance'|'platform'|'boarding'|'riding'|'arrival'|'exit';mode:'subway'|'bus'|'streetcar';night:boolean;paid:boolean;validated?:boolean;requested:boolean;paidArea?:boolean;departAt?:number;readyAt:number;position:Point;seat?:string;movement?:{path:Point[];startedAt:number;seconds:number;object?:string}};
 export type TransitObject={id:string;label:string;point:Point;use:Point};
 export const inVehicle=(t:TransitState)=>['boarding','riding','arrival'].includes(t.stage);
 export const transitStop=(t:TransitState)=>stopById(t.stage==='exit'?t.legs[t.index].to:t.legs[t.index].from)!;
 const modeFor=(t:TransitState)=>t.night?'bus':LINES.find(l=>l.id===t.legs[t.index].line)!.mode;
+/** Car sign / platform label: the current station while stopped, the next while moving. */
+export const boardSign=(t:TransitState)=>({label:t.stage==='riding'?'NEXT STOP':'AT STOP',name:stopById(['riding','arrival','exit'].includes(t.stage)?t.legs[t.index].to:t.legs[t.index].from)!.name});
+/** This arrival is the rider's own stop (destination or line transfer), not a brief pass-through. */
+const isHoldStop=(t:TransitState)=>t.index===t.legs.length-1||t.legs[t.index+1]?.line!==t.legs[t.index].line||(t.mode!=='subway'&&t.requested);
 /** A subway station is a fare-paid area: buses there can be boarded without re-tapping. */
 const isSubwayStop=(id:string)=>LINES.some(l=>l.mode==='subway'&&l.stops.includes(id));
 export function transitObjects(t:TransitState):TransitObject[]{
@@ -31,9 +35,9 @@ export function transitStatus(t:TransitState,now=Date.now()){
  if(t.movement)return 'Walking to '+(transitObjects(t).find(o=>o.id===t.movement?.object)?.label||'your spot')+'…';
  if(t.stage==='entrance')return 'Walk to the fare gate and tap your card';
  if(t.stage==='platform')return now<t.readyAt?'Wait behind the yellow line · '+(t.mode==='subway'?'Train':'Vehicle')+' arriving…':'Doors open · Walk over to board';
- if(t.stage==='boarding')return t.validated?'Choose a seat or stand at the rail to depart':'Boarded · Tap your card at the reader';
+ if(t.stage==='boarding')return 'At '+stopById(t.legs[t.index].from)!.name+' · '+(t.validated?'Choose a seat or stand at the rail':'Tap your card at the reader');
  if(t.stage==='exit')return 'Off the train · Walk through the exit to the street';
- if(t.stage==='arrival')return 'At '+stopById(t.legs[t.index].to)!.name+' · '+(t.mode==='subway'||t.requested?'Doors open · Walk to exit':'Request exit to open doors');
+ if(t.stage==='arrival'){const name=stopById(t.legs[t.index].to)!.name;return t.departAt!=null?'At '+name+' · Doors open':'At '+name+' · Doors open · '+(t.mode==='subway'||t.requested?'Walk to exit':'Request exit to open doors');}
  return 'Next stop: '+stopById(t.legs[t.index].to)!.name+(t.requested?' · Stop requested':t.seat?' · Seated':' · Standing');
 }
 /** Charges at most one fare per journey; returns the rider-facing fare line. */
@@ -58,7 +62,7 @@ function operate(s:GameState,id:string,now:number){
  }
  if(id==='request'){if(t.stage==='boarding')throw new Error('Choose a seat or stand before departure.');t.requested=true;return t.stage==='arrival'?'Exit requested. Doors are open.':'Stop requested for '+stopById(t.legs[t.index].to)!.name+'.';}
  if(id==='door'){
-  if(t.stage!=='arrival')throw new Error('The doors stay closed until the stop.');if(t.mode!=='subway'&&!t.requested)throw new Error('Press the stop request button first.');
+  if(t.stage!=='arrival')throw new Error('The doors stay closed until the stop.');if(t.departAt!=null)throw new Error('This isn’t your stop — the train continues shortly.');if(t.mode!=='subway'&&!t.requested)throw new Error('Press the stop request button first.');
   const at=t.legs[t.index].to,final=t.index===t.legs.length-1;delete t.seat;delete t.movement;t.requested=false;
   if(final){if(t.mode!=='subway')return leave(s,at);t.stage='exit';t.position=[1.5,-2];return 'On the arrival platform. Walk to the station exit.';}
   const paidArea=isSubwayStop(at);t.index++;t.mode=modeFor(t);t.paidArea=paidArea;t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return 'Transfer at '+stopById(at)!.name+'. Board '+LINES.find(l=>l.id===t.legs[t.index].line)!.name+(paidArea&&t.mode!=='subway'?' · same fare-paid area, no tap needed':'')+'.';
@@ -73,11 +77,18 @@ export function transitInteriorCommand(s:GameState,c:Command,now:number):string|
  }
  const t=s.transit;if(!t){if(c.type.startsWith('transit_'))throw new Error('Enter a station or board at a stop first.');return null;}
  if(c.type==='transit_tick'){
-  if(t.stage!=='riding'||now<t.readyAt)throw new Error('Still travelling to the next stop.');
-  advanceLife(s,t.legs[t.index].minutes+(t.night&&t.index===0?20:0));
-  const next=t.legs[t.index+1],transfer=!next||next.line!==t.legs[t.index].line;
-  if(t.requested||transfer){t.stage='arrival';return transitStatus(t,now);}
-  t.index++;t.readyAt=now+6000;return transitStatus(t,now);
+  // Pull into every station: riding → brief arrival (doors open). Pass-through stops depart on the next tick; the rider's own stop (destination/transfer) holds for them to get off.
+  if(t.stage==='riding'){
+   if(now<t.readyAt)throw new Error('Still travelling to the next stop.');
+   advanceLife(s,t.legs[t.index].minutes+(t.night&&t.index===0?20:0));
+   t.stage='arrival';if(isHoldStop(t))delete t.departAt;else t.departAt=now+2200;
+   return transitStatus(t,now);
+  }
+  if(t.stage==='arrival'){
+   if(t.departAt==null||now<t.departAt)throw new Error('Doors are open at this stop.');
+   delete t.departAt;t.index++;t.stage='riding';t.readyAt=now+6000;return transitStatus(t,now);
+  }
+  throw new Error('Still travelling to the next stop.');
  }
  if(c.type==='transit_arrive'){
   const m=t.movement;if(!m)throw new Error('There is no transit walk.');if(now<m.startedAt+m.seconds*1000)throw new Error('Still walking inside.');t.position=m.path[m.path.length-1];delete t.movement;
