@@ -4,20 +4,23 @@ import {advanceLife} from './life';
 import {FARE,LINES,nearestStop,stopById,transitRoute,serviceOpen,fareMonth,type Leg} from './transit';
 import {distance,pathLength,pointAlong,districtAt,nearbyPlace,type Point} from './world';
 import {interiorPath,type HomeLayout} from './interiors';
-export type TransitState={origin:string;destination:string;legs:Leg[];index:number;stage:'entrance'|'platform'|'boarding'|'riding'|'arrival'|'exit';mode:'subway'|'bus'|'streetcar';night:boolean;paid:boolean;validated?:boolean;requested:boolean;readyAt:number;position:Point;seat?:string;movement?:{path:Point[];startedAt:number;seconds:number;object?:string}};
+export type TransitState={origin:string;destination:string;legs:Leg[];index:number;stage:'entrance'|'platform'|'boarding'|'riding'|'arrival'|'exit';mode:'subway'|'bus'|'streetcar';night:boolean;paid:boolean;validated?:boolean;requested:boolean;paidArea?:boolean;readyAt:number;position:Point;seat?:string;movement?:{path:Point[];startedAt:number;seconds:number;object?:string}};
 export type TransitObject={id:string;label:string;point:Point;use:Point};
 export const inVehicle=(t:TransitState)=>['boarding','riding','arrival'].includes(t.stage);
 export const transitStop=(t:TransitState)=>stopById(t.stage==='exit'?t.legs[t.index].to:t.legs[t.index].from)!;
 const modeFor=(t:TransitState)=>t.night?'bus':LINES.find(l=>l.id===t.legs[t.index].line)!.mode;
+/** A subway station is a fare-paid area: buses there can be boarded without re-tapping. */
+const isSubwayStop=(id:string)=>LINES.some(l=>l.mode==='subway'&&l.stops.includes(id));
 export function transitObjects(t:TransitState):TransitObject[]{
  if(t.stage==='entrance')return [{id:'gate',label:'Tap PRESTO · Enter platform',point:[0,-2],use:[0,0]},{id:'street',label:'Return to street',point:[0,6.5],use:[0,5.5]}];
  if(t.stage==='platform')return [{id:'board',label:'Board '+(t.mode==='subway'?'train':t.mode),point:[3,-2],use:[1.5,-2]},{id:'street',label:'Exit to street',point:[0,6.5],use:[0,5.5]}];
  if(t.stage==='exit')return [{id:'street',label:'Walk out of station',point:[0,6.5],use:[0,5.5]}];
- return [...(!t.validated?[{id:'reader',label:'Tap card at reader',point:[1.8,6.6] as Point,use:[.3,6] as Point}]:[]),
+ const sub=t.mode==='subway';
+ return [...(!t.validated?[{id:'reader',label:'Tap card · Fare $'+(FARE.adult/100).toFixed(2),point:[1.8,6.6] as Point,use:[.3,6] as Point}]:[]),
  ...[-3,0,3].map((z,n)=>({id:'seat-'+n,label:'Sit here',point:[-2,z] as Point,use:[-.6,z] as Point})),
- {id:'stand',label:'Stand · Hold rail',point:[1,1],use:[0,1]},
- {id:'request',label:t.requested?'Stop requested':'Request stop / exit',point:[1.8,-4.5],use:[.4,-4.5]},
- {id:'door',label:t.stage==='arrival'?'Exit at '+stopById(t.legs[t.index].to)!.name:'Exit door · wait for stop',point:[2.8,5],use:[.7,5]}];
+ {id:'stand',label:'Stand · Hold rail',point:[1,1] as Point,use:[0,1] as Point},
+ ...(sub?[]:[{id:'request',label:t.requested?'Stop requested':'Request stop / exit',point:[1.8,-4.5] as Point,use:[.4,-4.5] as Point}]),
+ {id:'door',label:t.stage==='arrival'?'Exit at '+stopById(t.legs[t.index].to)!.name:sub?'Exit door · opens at the stop':'Exit door · wait for stop',point:[2.8,5] as Point,use:[.7,5] as Point}];
 }
 export function transitLayout(t:TransitState):HomeLayout{
  const vehicle=inVehicle(t),objects=vehicle?[-3,0,3].flatMap((z,n)=>[-2,2].map(x=>({id:'chair'+n+x,kind:'chair' as const,x,z,width:1.05,depth:1.25}))):[{id:'platform-bench',kind:'chair' as const,x:-4,z:0,width:1.4,depth:3}];
@@ -30,20 +33,23 @@ export function transitStatus(t:TransitState,now=Date.now()){
  if(t.stage==='platform')return now<t.readyAt?'Wait behind the yellow line · '+(t.mode==='subway'?'Train':'Vehicle')+' arriving…':'Doors open · Walk over to board';
  if(t.stage==='boarding')return t.validated?'Choose a seat or stand at the rail to depart':'Boarded · Tap your card at the reader';
  if(t.stage==='exit')return 'Off the train · Walk through the exit to the street';
- if(t.stage==='arrival')return 'At '+stopById(t.legs[t.index].to)!.name+' · '+(t.requested?'Doors open · Walk to exit':'Request exit to open doors');
+ if(t.stage==='arrival')return 'At '+stopById(t.legs[t.index].to)!.name+' · '+(t.mode==='subway'||t.requested?'Doors open · Walk to exit':'Request exit to open doors');
  return 'Next stop: '+stopById(t.legs[t.index].to)!.name+(t.requested?' · Stop requested':t.seat?' · Seated':' · Standing');
 }
-function tap(s:GameState,t:TransitState){if(t.paid)return;const cost=fareFor(s);if(cost>s.cash&&cost>0)throw new Error('Not enough money to tap. Exit to the street or use an active transfer.');s.cash-=cost;if(s.fareMonth!==fareMonth(s.minutes)){s.fareMonth=fareMonth(s.minutes);s.paidFares=0;}if(cost){s.paidFares++;s.transferUntil=s.minutes+FARE.transferMinutes;}t.paid=true;}
+/** Charges at most one fare per journey; returns the rider-facing fare line. */
+function tap(s:GameState,t:TransitState){if(t.paid)return 'Transfer · $0';const cost=fareFor(s);if(cost>s.cash&&cost>0)throw new Error('Not enough money to tap. Exit to the street or use an active transfer.');s.cash-=cost;if(s.fareMonth!==fareMonth(s.minutes)){s.fareMonth=fareMonth(s.minutes);s.paidFares=0;}if(cost){s.paidFares++;s.transferUntil=s.minutes+FARE.transferMinutes;}t.paid=true;return cost>0?'Fare · $'+(cost/100).toFixed(2):'Transfer · $0';}
+/** Preview the fare the next tap will charge, for the walk-over toast. */
+const farePreview=(s:GameState,t:TransitState)=>t.paid?'Transfer · $0':fareFor(s)>0?'Fare · $'+(fareFor(s)/100).toFixed(2):'Transfer · $0';
 function leave(s:GameState,at:string){const stop=stopById(at)!;s.position=stop.point;s.district=districtAt(stop.point);s.location=nearbyPlace(stop.point)?.id||'';if(!s.visited.includes(s.district))s.visited.push(s.district);s.bike=s.bike||s.visited.length>=3;delete s.transit;return 'Outside '+stop.name+'.';}
 function operate(s:GameState,id:string,now:number){
  const t=s.transit!,o=transitObjects(t).find(o=>o.id===id);if(!o||distance(t.position,o.use)>.65)throw new Error('Walk to the transit object first.');
  if(id==='street')return leave(s,transitStop(t).id);
- if(id==='gate'){tap(s,t);t.validated=true;t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return 'Card accepted. Follow the platform to the train.';}
+ if(id==='gate'){const fare=tap(s,t);t.validated=true;t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return fare+' · Card accepted. Follow the platform to the train.';}
  if(id==='board'){
   if(now<t.readyAt)throw new Error('Wait behind the yellow line until the vehicle doors open.');
-  t.stage='boarding';t.validated=t.mode==='subway';t.position=[.5,6];delete t.seat;return t.validated?'Boarded. Choose a seat or the standing rail.':'Boarded. Tap at the green reader by the door.';
+  t.stage='boarding';t.validated=t.mode==='subway'||!!t.paidArea;t.position=[.5,6];delete t.seat;return t.validated?(t.paidArea&&t.mode!=='subway'?'Boarded in the fare-paid area — no tap needed. ':'Boarded. ')+'Choose a seat or the standing rail.':'Boarded. Tap at the green reader by the door.';
  }
- if(id==='reader'){tap(s,t);t.validated=true;return 'Card accepted. Choose a seat or stand at the rail.';}
+ if(id==='reader'){const fare=tap(s,t);t.validated=true;return fare+' · Choose a seat or stand at the rail.';}
  if(id.startsWith('seat-')||id==='stand'){
   if(!t.validated)throw new Error('Tap your card at the reader first.');
   t.seat=id==='stand'?undefined:id;
@@ -52,10 +58,10 @@ function operate(s:GameState,id:string,now:number){
  }
  if(id==='request'){if(t.stage==='boarding')throw new Error('Choose a seat or stand before departure.');t.requested=true;return t.stage==='arrival'?'Exit requested. Doors are open.':'Stop requested for '+stopById(t.legs[t.index].to)!.name+'.';}
  if(id==='door'){
-  if(t.stage!=='arrival')throw new Error('The doors stay closed until the stop.');if(!t.requested)throw new Error('Press the stop request button first.');
+  if(t.stage!=='arrival')throw new Error('The doors stay closed until the stop.');if(t.mode!=='subway'&&!t.requested)throw new Error('Press the stop request button first.');
   const at=t.legs[t.index].to,final=t.index===t.legs.length-1;delete t.seat;delete t.movement;t.requested=false;
   if(final){if(t.mode!=='subway')return leave(s,at);t.stage='exit';t.position=[1.5,-2];return 'On the arrival platform. Walk to the station exit.';}
-  t.index++;t.mode=modeFor(t);t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return 'Transfer at '+stopById(at)!.name+'. Board '+LINES.find(l=>l.id===t.legs[t.index].line)!.name+'.';
+  const paidArea=isSubwayStop(at);t.index++;t.mode=modeFor(t);t.paidArea=paidArea;t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return 'Transfer at '+stopById(at)!.name+'. Board '+LINES.find(l=>l.id===t.legs[t.index].line)!.name+(paidArea&&t.mode!=='subway'?' · same fare-paid area, no tap needed':'')+'.';
  }
  throw new Error('Choose a transit object.');
 }
@@ -79,7 +85,8 @@ export function transitInteriorCommand(s:GameState,c:Command,now:number):string|
  }
  if(c.type==='transit_use'||c.type==='transit_walk'){
   if(t.movement)throw new Error('Finish walking inside first.');const o=transitObjects(t).find(o=>o.id===c.id);if(c.type==='transit_use'&&!o)throw new Error('Choose a transit object.');const target=o?.use||c.point;if(!target||!Array.isArray(target)||target.length!==2)throw new Error('Choose clear floor space.');
-  const path=interiorPath(t.position,target,transitLayout(t));if(pathLength(path)<.1&&o)return operate(s,o.id,now);delete t.seat;t.movement={path,startedAt:now,seconds:Math.max(.2,pathLength(path)/2.8),object:o?.id};return 'Walking inside.';
+  const path=interiorPath(t.position,target,transitLayout(t));if(pathLength(path)<.1&&o)return operate(s,o.id,now);delete t.seat;t.movement={path,startedAt:now,seconds:Math.max(.2,pathLength(path)/2.8),object:o?.id};
+  return o?.id==='gate'||o?.id==='reader'?farePreview(s,t):o?'Walking to '+o.label.replace(/ ·.*$/,'')+'…':'Walking to that spot…';
  }
  if(c.type==='appearance')return null;
  throw new Error('Use the transit objects, then exit at a stop before doing that.');

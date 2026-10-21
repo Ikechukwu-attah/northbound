@@ -52,6 +52,8 @@ const FEATURE_FALLBACK={weston_go:[-79.51276,43.70005],longbranch_go:[-79.54529,
 const STOP_FALLBACK={
  queenwest:[-79.39664,43.64873], harbour:[-79.38103,43.63866], york:[-79.43460,43.69812],
  ey:[-79.33727,43.69024], lakeshore:[-79.54330,43.59216],
+ dundas1:[-79.3796,43.656], // Yonge-Dundas station is not name-tagged station=subway in OSM.
+ queenbathurst:[-79.40246,43.64739], queenyonge:[-79.37917,43.65276], harbourfront:[-79.38353,43.63905],
 };
 // stopId → how to resolve: subway name, feature key, fallback, or another stop's coord.
 const STOP_MAP={
@@ -68,6 +70,19 @@ const STOP_MAP={
  finchwest:{sub:'Finch West'},yorku:{sub:'York University'},pioneer:{sub:'Pioneer Village'},
  highway407:{sub:'Highway 407'},vaughan:{sub:'Vaughan Metropolitan Centre'},bayview:{sub:'Bayview'},
  bessarion:{sub:'Bessarion'},leslie:{sub:'Leslie'},donmills:{sub:'Don Mills'},pearson:{feat:'pearson'},
+ // Line 1 infill stations (real order).
+ yorkmills:{sub:'York Mills'},lawrence:{sub:'Lawrence'},davisville:{sub:'Davisville'},stclair:{sub:'St Clair'},
+ summerhill:{sub:'Summerhill'},rosedale:{sub:'Rosedale'},wellesley:{sub:'Wellesley'},college:{sub:'College'},
+ dundas1:{sub:'Dundas',fb:'dundas1'},king:{sub:'King'},glencairn:{sub:'Glencairn'},
+ // Line 2 infill stations (real order).
+ islington:{sub:'Islington'},royalyork:{sub:'Royal York'},oldmill:{sub:'Old Mill'},runnymede:{sub:'Runnymede'},
+ highpark:{sub:'High Park'},keele:{sub:'Keele'},lansdowne:{sub:'Lansdowne'},dufferin:{sub:'Dufferin'},
+ ossington:{sub:'Ossington'},christie:{sub:'Christie'},bathurst:{sub:'Bathurst'},bay:{sub:'Bay'},
+ sherbourne:{sub:'Sherbourne'},castlefrank:{sub:'Castle Frank'},chester:{sub:'Chester'},pape:{sub:'Pape'},
+ donlands:{sub:'Donlands'},greenwood:{sub:'Greenwood'},woodbine:{sub:'Woodbine'},mainstreet:{sub:'Main Street'},
+ victoriapark:{sub:'Victoria Park'},warden:{sub:'Warden'},
+ // Surface infill stops (intersection anchors; documented fallbacks).
+ queenbathurst:{fb:'queenbathurst'},queenyonge:{fb:'queenyonge'},harbourfront:{fb:'harbourfront'},
 };
 // placeId → anchor (reuse a feature or a stop's coord so distances stay internally consistent).
 const PLACE_MAP={
