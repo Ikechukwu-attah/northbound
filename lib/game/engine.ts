@@ -1,3 +1,4 @@
+import {interiorCommand,enterHome,homeTier,homeLayout,type InteriorState} from './interiors';
 import {nearestRestSeat,type RestSeat} from './seating';
 import {initialCommunity,communityAction,type CommunityState} from './activities';
 import {initialLife,advanceLife,lifeAction,ECONOMY,PATHS,requireNeeds,type LifeState,type PathId} from './life';
@@ -6,9 +7,9 @@ import { PEOPLE,type DistrictId,type Need } from './data';
 import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,districtAt,nearbyPlace,snapPoint,nearestPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
 import {placeGeo,stopGeo,haversineMetres} from './geo';
 import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES} from './transit';
-export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number;vehicleMode?:'bus'|'streetcar'|'subway';restSeat?:RestSeat};
+export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number;vehicleMode?:'bus'|'streetcar'|'subway';restSeat?:RestSeat;enterHome?:boolean};
 
-export type GameState={version:4;social?:{householdId?:string;lastMeetDay?:string};community:CommunityState;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
+export type GameState={version:4;interior?:InteriorState;doorExitUntil?:number;social?:{householdId?:string;lastMeetDay?:string};community:CommunityState;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
 export type Command={type:string;progress?:number;id?:string;name?:string;color?:string;skin?:string;point?:Point;mode?:string;path?:PathId;appearance?:Partial<Appearance>};
 export const COLORS=['#ce7551','#4f7f72','#6f86a4','#9b799c','#d7a44c'];
 export const SKINS=['#e3b88e','#b87e56','#764a35','#f1d3b5'];
@@ -33,7 +34,7 @@ export function migrateState(value:unknown):GameState{
  if((old.version as number)===1){const p=placeById(old.location)||placeById('queen')!;Object.assign(old,{version:2,position:entrance(p),district:p.district,location:p.id,visitedPlaces:Array.from(new Set([p.id,'home'])),journey:null,transferUntil:0,fareMonth:fareMonth(old.minutes),paidFares:0,tripCount:0,bike:old.visited.length>=3});}
  if(!old.life)old.life=initialLife(old,'legacy',undefined,true);
  if((old.version as number)<4){old.skill=PATHS.find(p=>p.id===old.life.path)?.skill||0;old.life.trainingHours=0;old.life.trainingStart=Math.floor(old.minutes/1440);old.position=snapPoint(old.position);if(old.journey){const j=old.journey,end=snapPoint(j.path[j.path.length-1]);if(j.kind==='walk'||j.kind==='bike')j.path=walkingPath(old.position,end);else{const stop=STOPS.find(p=>p.name===j.label);j.path[j.path.length-1]=stop?.point||end;}}old.district=districtAt(old.position);old.location=nearbyPlace(old.position)?.id||'';old.log.unshift({text:'Save updated: skill reset to your starting path; new sidewalk, needs and training rules now apply. Savings and story retained.',day:day(old)});}
- old.community??=initialCommunity();old.version=4;return old;
+ old.community??=initialCommunity();if(old.interior){if(old.interior.place!==(old.life.housing.place||'home'))delete old.interior;else if(old.interior.tier!==homeTier(old.life.housing.type))old.interior={place:old.interior.place,tier:homeTier(old.life.housing.type),position:homeLayout(homeTier(old.life.housing.type)).door};}old.version=4;return old;
 }
 export function isNear(s:GameState,id:string){const p=placeById(id);return !s.journey&&!!p&&distance(s.position,entrance(p))<=3;}
 function requirePlace(s:GameState,id:string){if(!isNear(s,id))throw new Error(`Walk to ${placeById(id)?.name||'the location'} first. Activities require you to be there.`);}
@@ -43,6 +44,7 @@ export function journeyPosition(j:Journey,now=Date.now()):Point{return pointAlon
 export function fareFor(s:GameState){const capped=s.fareMonth===fareMonth(s.minutes)&&s.paidFares>=FARE.monthlyCap;const transfer=s.paidFares>0&&s.minutes<s.transferUntil&&s.minutes>=s.transferUntil-FARE.transferMinutes;return capped||transfer?0:FARE.adult;}
 export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Math.random()):{state:GameState;message:string;notifications:string[]}{
  const s=migrateState(original);let message='';const spot=placeById(s.location);
+ const interiorResult=interiorCommand(s,c,now);if(interiorResult!==null){if(!['interior_walk','interior_cancel'].includes(c.type))log(s,interiorResult);return {state:s,message:interiorResult,notifications:[interiorResult]};}
  if(s.journey&&!['arrive','cancel'].includes(c.type))throw new Error('Finish your journey before taking another action.');
  requireNeeds(s,c);
  const seated=s.life.restSeat;
@@ -101,6 +103,7 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   advance(s,fraction>=1?j.minutes:Math.max(0,Math.ceil(j.minutes*fraction)));s.journey=null;settlePosition(s,onSidewalk(p)?p:snapPoint(p));
   if(j.restSeat&&fraction>=1&&c.type==='arrive'){settlePosition(s,j.restSeat.access);s.life.restSeat=j.restSeat;advance(s,60);boost(s,{energy:30,fun:10});s.life.animation='sit';s.life.animationUntil=0;message='An hour of seated rest restores your energy. The sidewalk is clear for others.';break;}
   if(j.restSeat&&fraction>=1)settlePosition(s,j.restSeat.access);
+  if(c.type==='arrive'&&fraction>=1&&(j.destination===(s.life.housing.place||'home')||now>(s.doorExitUntil||0)&&distance(s.position,entrance(placeById(s.life.housing.place||'home')!))<.65)){enterHome(s);message='Welcome home. Tap the furniture to use it.';break;}
   message=fraction>=1?`Arrived at ${j.label}. ${j.minutes} game minutes travelled.`:'Walk paused. Your position and elapsed travel time are saved.';break;
  }
  case 'travel':throw new Error('Use Explore to find a visible TTC stop. District teleporting has been retired.');

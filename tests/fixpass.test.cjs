@@ -3,10 +3,11 @@ const dest=path.resolve(__dirname,'../work/fixpass-test');fs.mkdirSync(dest,{rec
 for(const file of fs.readdirSync(path.resolve(__dirname,'../lib/game')).filter(f=>f.endsWith('.ts')).map(f=>f.slice(0,-3)))fs.writeFileSync(path.join(dest,file+'.js'),ts.transpileModule(fs.readFileSync(path.resolve(__dirname,'../lib/game/'+file+'.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText);
 const w=require('../work/fixpass-test/world.js'),n=require('../work/fixpass-test/navigation.js'),e=require('../work/fixpass-test/engine.js'),l=require('../work/fixpass-test/life.js'),t=require('../work/fixpass-test/transit.js'),solar=require('../work/fixpass-test/solar.js'),ui=require('../work/fixpass-test/ui.js');
 const fresh=()=>e.newGame({name:'Full-day tester',path:'local'});
-const at=(s,id)=>({...s,position:w.entrance(w.placeById(id)),location:id});
-const act=(s,type,id,extra={})=>e.applyCommand(s,{type,id,...extra},100000,.5).state;
+const at=(s,id)=>({...s,interior:undefined,position:w.entrance(w.placeById(id)),location:id});
+const indoors=s=>s.interior?.movement?e.applyCommand(s,{type:'interior_arrive'},s.interior.movement.startedAt+s.interior.movement.seconds*1000+1,.5).state:s;
+const act=(s,type,id,extra={})=>{if(type==='home'&&!s.interior&&e.isNear(s,l.homePlace(s)))s=e.applyCommand(s,{type:'enter_home'},100000,.5).state;return indoors(e.applyCommand(s,{type,id,...extra},100000,.5).state)};
 const finish=s=>e.applyCommand(s,{type:'arrive'},s.journey.startedAt+s.journey.seconds*1000+1,.5).state;
-const go=(s,id)=>finish(act(s,'walk',id));
+const go=(s,id)=>{if(s.interior)s=act(s,'exit_home');return finish(act(s,'walk',id));};
 
 test('all sidewalk centre corridors and passing lanes clear updated buildings, shelters and props',()=>{
  for(let x=-245;x<=355;x+=24)for(let z=-485;z<=-5;z+=24){
