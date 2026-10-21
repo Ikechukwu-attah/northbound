@@ -1,9 +1,10 @@
 'use client';
 import {Canvas,useFrame,useThree,type ThreeEvent} from '@react-three/fiber';
-import {OrbitControls} from '@react-three/drei';
+import {OrbitControls,Html} from '@react-three/drei';
 import {useEffect,useMemo,useRef,useState,Component,type ReactNode} from 'react';
 import * as THREE from 'three';
 import Human from './Human';
+import {homePlace} from '@/lib/game/life';
 import RemotePlayers from './RemotePlayers';
 import type {Peer} from '@/lib/game/multiplayer';
 import {DaylightContext} from './Lighting';
@@ -18,7 +19,7 @@ import {lanePoint,advanceWalker,namedPosition,scheduledPositions} from '@/lib/ga
 import {journeyFraction} from '@/lib/game/engine';
 import {seasonAt,weatherAt} from '@/lib/game/calendar';
 import type {Spot} from '@/lib/game/data';
-import {PLACES,BLOCK,chunksAround,districtAt,snapPoint,distance,entrance,inBounds,PERSON_PLACES,type Point} from '@/lib/game/world';
+import {PLACES,placeById,BLOCK,chunksAround,districtAt,snapPoint,distance,entrance,inBounds,PERSON_PLACES,type Point} from '@/lib/game/world';
 import {STOPS,nearestStop} from '@/lib/game/transit';
 import {journeyPosition,type GameState} from '@/lib/game/engine';
 import {movementKey,blocksMovement,directionVector,type Direction} from '@/lib/game/ui';
@@ -26,11 +27,11 @@ import {MapLabelOverlay,ProjectedLabels,type LabelRefs} from './MapLabels';
 import {Box,Cylinder,Tree,Bench,Store,Landmark,Park,Person,Bus,Sailboat,Building} from './CityAssets';
 const STATION_LABELS:Spot[]=STOPS.map(s=>({id:'stop:'+s.id,name:'TTC · '+s.name,kind:'landmark',x:s.point[0],z:s.point[1],color:'#c93b35',description:'Transit stop',activity:'Choose exit stop'}));
 const LABELS=[...PLACES,...STATION_LABELS];
-type Props={peers?:Peer[];serverTime?:number;game:GameState|null;selected:string;player:{name:string;color:string;skin:string};reset:number;onSpot:(s:Spot)=>void;onStop:(id:string)=>void;onWalk:(point:Point)=>void;onReady:()=>void;onJourneyReady:(startedAt:number)=>void;onJourneyProgress:(startedAt:number,fraction:number)=>void;labels:boolean;quality:boolean;movementEnabled:boolean};
+type Props={onEnterHome:()=>void;peers?:Peer[];serverTime?:number;game:GameState|null;selected:string;player:{name:string;color:string;skin:string};reset:number;onSpot:(s:Spot)=>void;onStop:(id:string)=>void;onWalk:(point:Point)=>void;onReady:()=>void;onJourneyReady:(startedAt:number)=>void;onJourneyProgress:(startedAt:number,fraction:number)=>void;labels:boolean;quality:boolean;movementEnabled:boolean};
 const spawn=entrance(PLACES.find(p=>p.id==='queen')!);
 function Chunk({cell:[cx,cz]}:{cell:Point}){if(cz<0)return cz===-1?<group><Box p={[cx*24+12,.13,-1]} s={[24,.4,1.4]} c="#c5b795"/>{cx>=8&&<Box p={[cx*24+12,1.6,1]} s={[24,3.2,2]} c="#dfcda9"/>}</group>:null;return <group><Box p={[cx*24+12,-.16,cz*24+12]} s={[24,.2,24]} c="#80b5b9"/>{cx%3===0&&cz===0&&<Sailboat x={cx*24+9} z={cz*24+14}/>}</group>;}
 function Weather({centre,minutes}:{centre:Point;minutes:number}){const mesh=useRef<THREE.InstancedMesh>(null);const dummy=useMemo(()=>new THREE.Object3D(),[]);const weather=weatherAt(minutes),snow=weather==='Snow',wet=/rain/i.test(weather);useFrame(({clock})=>{if(!mesh.current)return;for(let i=0;i<80;i++){dummy.position.set(centre[0]+(i*17%64)-32,20-((clock.elapsedTime*(snow?1.8:13)+i*.7)%20),centre[1]+(i*31%64)-32);dummy.scale.setScalar(1);dummy.updateMatrix();mesh.current.setMatrixAt(i,dummy.matrix);}mesh.current.instanceMatrix.needsUpdate=true;});return snow||wet?<instancedMesh ref={mesh} args={[undefined,undefined,80]} frustumCulled={false}><boxGeometry args={snow?[.14,.14,.14]:[.035,.8,.035]}/><meshBasicMaterial color={snow?'#fffaf2':'#a9c5cc'} transparent opacity={.7}/></instancedMesh>:null;}
-function Scene({game,peers=[],serverTime,selected,player,reset,onSpot,onStop,onWalk,onReady,onJourneyReady,onJourneyProgress,quality,movementEnabled,labelRefs}:Props&{labelRefs:LabelRefs}){
+function Scene({game,onEnterHome,peers=[],serverTime,selected,player,reset,onSpot,onStop,onWalk,onReady,onJourneyReady,onJourneyProgress,quality,movementEnabled,labelRefs}:Props&{labelRefs:LabelRefs}){
  const serverOffset=useMemo(()=>serverTime?serverTime-Date.now():0,[serverTime]);
  const pedestrianPositions=useRef(new Map<string,Point>());
  const avatar=useRef<THREE.Group>(null),controls=useRef<any>(null),keys=useRef(new Set<Direction>()),lastRequest=useRef(0);const {camera,size}=useThree();
@@ -73,6 +74,7 @@ function Scene({game,peers=[],serverTime,selected,player,reset,onSpot,onStop,onW
  {peopleAt(game?.minutes||540).map(({id,place},i)=>{const p=nearby.find(p=>p.id===place);return p?<group key={id} position={[p.x+2,0,p.z+5.8]}><Human appearance={namedAppearance(id)} action={i%3===0?'coffee':i%3===1?'wave':'talk'} minutes={game?.minutes||540} scale={1.8}/></group>:null})}
 
  <group ref={avatar}>{riding?<TTCBus/>:<Human appearance={game?.life.appearance} action={game?.journey?(game.journey.kind==='bike'?'bike':game.journey.kind==='walk'?'walk':'wait'):game?.life.restSeat?'sit':game&&game.life.animationUntil>Date.now()?game.life.animation as HumanAction:'idle'} minutes={game?.minutes||540}/>}<mesh renderOrder={5} position={[0,.3,0]} rotation={[-Math.PI/2,0,0]}><ringGeometry args={[.8,1.12,40]}/><meshBasicMaterial color="#baff65" depthTest={false}/></mesh>{!riding&&!game?.life.restSeat&&<group>{/* Always-visible silhouette so the player stays findable behind buildings. */}<mesh renderOrder={6} position={[0,1.15,0]}><capsuleGeometry args={[.3,1.02,4,8]}/><meshBasicMaterial color={game?.color||'#315f4a'} transparent opacity={.3} depthTest={false}/></mesh><mesh renderOrder={6} position={[0,2.05,0]}><sphereGeometry args={[.33,12,8]}/><meshBasicMaterial color={game?.color||'#315f4a'} transparent opacity={.3} depthTest={false}/></mesh></group>}</group>
+ {game&&nearby.some(p=>p.id===homePlace(game))&&<group position={[placeById(homePlace(game))!.x,.05,placeById(homePlace(game))!.z+7]}><mesh rotation={[-Math.PI/2,0,0]} onClick={e=>{e.stopPropagation();if(e.delta<5&&movementEnabled)onEnterHome()}}><ringGeometry args={[.85,1.15,32]}/><meshBasicMaterial color="#f5cf71"/></mesh><Html center position={[0,1.6,0]} zIndexRange={[9,5]}><button className="home-door-marker" disabled={!movementEnabled||!!game.journey} onClick={onEnterHome}>⌂ Enter home</button></Html></group>}
  <RemotePlayers peers={peers} offset={serverOffset} avatar={avatar} positions={pedestrianPositions}/><Traffic cells={cells} minutes={game?.minutes||540} quality={quality} avatar={avatar} pedestrians={pedestrianPositions}/><Crowds playerStart={game?.position||spawn} avatar={avatar} positions={pedestrianPositions} centre={centre} minutes={game?.minutes||540} quality={quality}/><ProjectedLabels refs={labelRefs} spots={LABELS} selected={selected} avatar={avatar}/>
  <OrbitControls ref={controls} makeDefault enablePan={false} enableDamping dampingFactor={.12} minZoom={zoomMin} maxZoom={zoomMin*6} minPolarAngle={.9} maxPolarAngle={.9} mouseButtons={{LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE}} touches={{ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_ROTATE}}/>
  </DaylightContext.Provider>;
