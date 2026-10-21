@@ -1,3 +1,4 @@
+import {transitInteriorCommand,type TransitState} from './transit-interiors';
 import {interiorCommand,enterHome,migrateInterior,type InteriorState} from './interiors';
 import {nearestRestSeat,type RestSeat} from './seating';
 import {initialCommunity,communityAction,type CommunityState} from './activities';
@@ -9,7 +10,7 @@ import {placeGeo,stopGeo,haversineMetres} from './geo';
 import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES} from './transit';
 export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number;vehicleMode?:'bus'|'streetcar'|'subway';restSeat?:RestSeat;enterHome?:boolean;enterCafe?:boolean};
 
-export type GameState={version:4;interior?:InteriorState;doorExitUntil?:number;social?:{householdId?:string;lastMeetDay?:string};community:CommunityState;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
+export type GameState={version:4;transit?:TransitState;interior?:InteriorState;doorExitUntil?:number;social?:{householdId?:string;lastMeetDay?:string};community:CommunityState;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
 export type Command={type:string;progress?:number;id?:string;name?:string;color?:string;skin?:string;point?:Point;mode?:string;path?:PathId;appearance?:Partial<Appearance>};
 export const COLORS=['#ce7551','#4f7f72','#6f86a4','#9b799c','#d7a44c'];
 export const SKINS=['#e3b88e','#b87e56','#764a35','#f1d3b5'];
@@ -36,7 +37,7 @@ export function migrateState(value:unknown):GameState{
  if((old.version as number)<4){old.skill=PATHS.find(p=>p.id===old.life.path)?.skill||0;old.life.trainingHours=0;old.life.trainingStart=Math.floor(old.minutes/1440);old.position=snapPoint(old.position);if(old.journey){const j=old.journey,end=snapPoint(j.path[j.path.length-1]);if(j.kind==='walk'||j.kind==='bike')j.path=walkingPath(old.position,end);else{const stop=STOPS.find(p=>p.name===j.label);j.path[j.path.length-1]=stop?.point||end;}}old.district=districtAt(old.position);old.location=nearbyPlace(old.position)?.id||'';old.log.unshift({text:'Save updated: skill reset to your starting path; new sidewalk, needs and training rules now apply. Savings and story retained.',day:day(old)});}
  old.community??=initialCommunity();migrateInterior(old);old.version=4;return old;
 }
-export function isNear(s:GameState,id:string){const p=placeById(id);return !s.journey&&!!p&&distance(s.position,entrance(p))<=3;}
+export function isNear(s:GameState,id:string){const p=placeById(id);return !s.transit&&!s.journey&&!!p&&distance(s.position,entrance(p))<=3;}
 function requirePlace(s:GameState,id:string){if(!isNear(s,id))throw new Error(`Walk to ${placeById(id)?.name||'the location'} first. Activities require you to be there.`);}
 function settlePosition(s:GameState,p:Point){s.position=p;s.district=districtAt(p);const place=nearbyPlace(p);s.location=place?.id||'';if(place){s.district=place.district;if(!s.visitedPlaces.includes(place.id))s.visitedPlaces.push(place.id);}if(!s.visited.includes(s.district))s.visited.push(s.district);s.bike=s.bike||s.visited.length>=3;}
 export function journeyFraction(j:Journey,now=Date.now()){return Math.max(0,Math.min(1,(now-j.startedAt-j.waitSeconds*1000)/((j.seconds-j.waitSeconds)*1000)));}
@@ -44,6 +45,7 @@ export function journeyPosition(j:Journey,now=Date.now()):Point{return pointAlon
 export function fareFor(s:GameState){const capped=s.fareMonth===fareMonth(s.minutes)&&s.paidFares>=FARE.monthlyCap;const transfer=s.paidFares>0&&s.minutes<s.transferUntil&&s.minutes>=s.transferUntil-FARE.transferMinutes;return capped||transfer?0:FARE.adult;}
 export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Math.random()):{state:GameState;message:string;notifications:string[]}{
  const s=migrateState(original);let message='';const spot=placeById(s.location);
+ const transitResult=transitInteriorCommand(s,c,now);if(transitResult!==null){if(!['transit_walk','transit_tick'].includes(c.type))log(s,transitResult);return {state:s,message:transitResult,notifications:[transitResult]};}
  const interiorResult=interiorCommand(s,c,now);if(interiorResult!==null){if(!['interior_walk','interior_cancel'].includes(c.type))log(s,interiorResult);return {state:s,message:interiorResult,notifications:[interiorResult]};}
  if(s.journey&&!['arrive','cancel'].includes(c.type))throw new Error('Finish your journey before taking another action.');
  requireNeeds(s,c);

@@ -95,4 +95,12 @@ function cafeObject(s:GameState,id:string,mode:string|undefined,now:number){
 export function sameInterior(a:GameState,b:GameState){if(!a.interior||!b.interior)return !a.interior&&!b.interior;if(a.interior.place!==b.interior.place||(a.interior.kind||'home')!==(b.interior.kind||'home'))return false;return a.interior.kind==='cafe'||!!a.social?.householdId&&a.social.householdId===b.social?.householdId;}
 
 /** Staff and queued customers reserve clear floor footprints as well as visible bodies. */
-export function interiorNavigation(i:InteriorState,minutes:number):HomeLayout{const l=interiorLayout(i),hour=minutes%1440/60;let people:Point[]=[];if(i.kind==='cafe'&&hour>=7&&hour<20)people=[[-3,-6.65],...Array.from({length:i.queue||0},(_,n)=>[-7.7,-2.5+n*1.4] as Point)];else if(i.kind!=='cafe'&&i.tier==='room'&&hour>=7&&hour<23)people=[[2.8,-6]];return {...l,walls:[...l.walls,...people.map(([x,z])=>({x,z,width:.7,depth:.7}))]};}
+export function interiorNavigation(i:InteriorState,minutes:number):HomeLayout{const l=interiorLayout(i),hour=minutes%1440/60;let people:Point[]=[];if(i.kind==='cafe'&&(hour>=7&&hour<20||!!i.order))people=[[-3,-6.65],[3.4,-6.65],...Array.from({length:i.queue||0},(_,n)=>[-7.7,-2.5+n*1.4] as Point)];else if(i.kind!=='cafe'&&i.tier==='room'&&hour>=7&&hour<23)people=[[2.8,-6]];return {...l,walls:[...l.walls,...people.map(([x,z])=>({x,z,width:.7,depth:.7}))]};}
+
+export function cafeStatus(i:InteriorState,now=Date.now()){
+ if(i.movement)return 'Walking to '+(i.movement.object==='register'?'the till':i.movement.object||'your spot')+'…';
+ if(i.pose?.action==='eat'&&i.pose.until>now)return 'Seated · Enjoying your order';
+ if(i.seat)return i.order?.paid?'Seated · Ready to eat':i.order?'Seated · Order needs payment':'Seated · Relaxing';
+ if(i.order)return i.order.paid?'Paid · Choose a seat':'Ordered · Pay at the till';
+ return 'Order at the counter → pay → sit → eat';
+}
