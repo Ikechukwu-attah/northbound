@@ -1,10 +1,11 @@
+import {transitSeats,TRANSIT_POLES} from './transit-kit';
 import type {GameState,Command} from './engine';
 import {fareFor} from './engine';
 import {advanceLife} from './life';
 import {FARE,LINES,nearestStop,stopById,transitRoute,serviceOpen,fareMonth,type Leg} from './transit';
 import {distance,pathLength,pointAlong,districtAt,nearbyPlace,type Point} from './world';
-import {interiorPath,type HomeLayout} from './interiors';
-export type TransitState={origin:string;destination:string;legs:Leg[];index:number;stage:'entrance'|'platform'|'boarding'|'riding'|'arrival'|'exit';mode:'subway'|'bus'|'streetcar';night:boolean;paid:boolean;validated?:boolean;requested:boolean;paidArea?:boolean;readyAt:number;position:Point;seat?:string;movement?:{path:Point[];startedAt:number;seconds:number;object?:string}};
+import {interiorPath,interiorSegment,insideWalkable,type HomeLayout} from './interiors';
+export type TransitState={layoutVersion?:number;origin:string;destination:string;legs:Leg[];index:number;stage:'entrance'|'platform'|'boarding'|'riding'|'arrival'|'exit';mode:'subway'|'bus'|'streetcar';night:boolean;paid:boolean;validated?:boolean;requested:boolean;paidArea?:boolean;readyAt:number;position:Point;seat?:string;movement?:{path:Point[];startedAt:number;seconds:number;object?:string}};
 export type TransitObject={id:string;label:string;point:Point;use:Point};
 export const inVehicle=(t:TransitState)=>['boarding','riding','arrival'].includes(t.stage);
 export const transitStop=(t:TransitState)=>stopById(t.stage==='exit'?t.legs[t.index].to:t.legs[t.index].from)!;
@@ -23,8 +24,8 @@ export function transitObjects(t:TransitState):TransitObject[]{
  {id:'door',label:t.stage==='arrival'?'Exit at '+stopById(t.legs[t.index].to)!.name:sub?'Exit door · opens at the stop':'Exit door · wait for stop',point:[2.8,5] as Point,use:[.7,5] as Point}];
 }
 export function transitLayout(t:TransitState):HomeLayout{
- const vehicle=inVehicle(t),objects=vehicle?[-3,0,3].flatMap((z,n)=>[-2,2].map(x=>({id:'chair'+n+x,kind:'chair' as const,x,z,width:1.05,depth:1.25}))):[{id:'platform-bench',kind:'chair' as const,x:-4,z:0,width:1.4,depth:3}];
- return {tier:'room',width:vehicle?6:12,depth:vehicle?18:14,door:[0,5.5],doors:[],objects,walls:vehicle?[{x:-.9,z:-5.5,width:.08,depth:.08},{x:.9,z:1,width:.08,depth:.08},{x:.9,z:5.8,width:.08,depth:.08},...(t.mode!=='subway'?[{x:-1.5,z:7.7,width:1.1,depth:1.1}]:[])]:t.stage==='entrance'?[{x:0,z:-2,width:12,depth:.7}]:[{x:4.4,z:-2,width:.3,depth:9}],bathroom:{x:0,z:0,width:0,depth:0},palette:{floor:'#aaa99e',wall:'#e4e2d7',accent:'#da291c'}};
+ const vehicle=inVehicle(t),objects=vehicle?transitSeats(t.mode).map((seat,n)=>({...seat,id:'chair'+n,kind:'chair' as const})):[{id:'platform-bench',kind:'chair' as const,x:-4,z:0,width:1.4,depth:3}];
+ return {tier:'room',width:vehicle?6:12,depth:vehicle?18:14,door:[0,5.5],doors:[],objects,walls:vehicle?[...TRANSIT_POLES.map(([x,z])=>({x,z,width:.08,depth:.08})),...(t.mode!=='subway'?[{x:-1.5,z:7.7,width:1.1,depth:1.1}]:[])]:t.stage==='entrance'?[{x:0,z:-2,width:12,depth:.7}]:[{x:4.4,z:-2,width:.3,depth:9}],bathroom:{x:0,z:0,width:0,depth:0},palette:{floor:'#aaa99e',wall:'#e4e2d7',accent:'#da291c'}};
 }
 export function transitPosition(t:TransitState,now=Date.now()):Point{return t.movement?pointAlong(t.movement.path,Math.max(0,Math.min(1,(now-t.movement.startedAt)/(t.movement.seconds*1000)))):t.position;}
 export function transitStatus(t:TransitState,now=Date.now()){
@@ -69,7 +70,7 @@ function operate(s:GameState,id:string,now:number){
 export function transitInteriorCommand(s:GameState,c:Command,now:number):string|null{
  if(c.type==='transit'&&c.mode==='playable'){
   if(s.interior)throw new Error('Exit your home or café first.');if(s.journey||s.transit)throw new Error('Finish your journey first.');const from=nearestStop(s.position),to=stopById(c.id||'');if(distance(s.position,from.point)>3)throw new Error('Walk to '+from.name+' first.');if(!to)throw new Error('Choose an exit stop.');const route=transitRoute(from.id,to.id),night=!serviceOpen(s.minutes);delete s.life.restSeat;
-  const t:TransitState={origin:from.id,destination:to.id,legs:route.legs,index:0,stage:'entrance',mode:'subway',night,paid:false,requested:false,readyAt:now+2500,position:[0,5.5]};t.mode=modeFor(t);if(t.mode!=='subway')t.stage='platform';s.transit=t;return transitStatus(t,now);
+  const t:TransitState={layoutVersion:2,origin:from.id,destination:to.id,legs:route.legs,index:0,stage:'entrance',mode:'subway',night,paid:false,requested:false,readyAt:now+2500,position:[0,5.5]};t.mode=modeFor(t);if(t.mode!=='subway')t.stage='platform';s.transit=t;return transitStatus(t,now);
  }
  const t=s.transit;if(!t){if(c.type.startsWith('transit_'))throw new Error('Enter a station or board at a stop first.');return null;}
  if(c.type==='transit_tick'){
@@ -91,3 +92,6 @@ export function transitInteriorCommand(s:GameState,c:Command,now:number):string|
  if(c.type==='appearance')return null;
  throw new Error('Use the transit objects, then exit at a stop before doing that.');
 }
+
+/** Added seat rows must not leave an older save inside furniture or following an obsolete route. */
+export function migrateTransitInterior(s:GameState){const t=s.transit;if(!t||t.layoutVersion===2)return;const layout=transitLayout(t),path=t.movement?.path;const blocked=!insideWalkable(t.position,layout)||path?.some((p,n)=>n>0&&!interiorSegment(path[n-1],p,layout));if(blocked){t.position=inVehicle(t)?[.5,6]:t.stage==='entrance'?[0,5.5]:[0,4];delete t.movement;delete t.seat;}t.layoutVersion=2;}

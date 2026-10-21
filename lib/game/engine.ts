@@ -1,4 +1,4 @@
-import {transitInteriorCommand,type TransitState} from './transit-interiors';
+import {transitInteriorCommand,migrateTransitInterior,type TransitState} from './transit-interiors';
 import {interiorCommand,enterHome,migrateInterior,type InteriorState} from './interiors';
 import {nearestRestSeat,type RestSeat} from './seating';
 import {initialCommunity,communityAction,type CommunityState} from './activities';
@@ -35,7 +35,7 @@ export function migrateState(value:unknown):GameState{
  if((old.version as number)===1){const p=placeById(old.location)||placeById('queen')!;Object.assign(old,{version:2,position:entrance(p),district:p.district,location:p.id,visitedPlaces:Array.from(new Set([p.id,'home'])),journey:null,transferUntil:0,fareMonth:fareMonth(old.minutes),paidFares:0,tripCount:0,bike:old.visited.length>=3});}
  if(!old.life)old.life=initialLife(old,'legacy',undefined,true);
  if((old.version as number)<4){old.skill=PATHS.find(p=>p.id===old.life.path)?.skill||0;old.life.trainingHours=0;old.life.trainingStart=Math.floor(old.minutes/1440);old.position=snapPoint(old.position);if(old.journey){const j=old.journey,end=snapPoint(j.path[j.path.length-1]);if(j.kind==='walk'||j.kind==='bike')j.path=walkingPath(old.position,end);else{const stop=STOPS.find(p=>p.name===j.label);j.path[j.path.length-1]=stop?.point||end;}}old.district=districtAt(old.position);old.location=nearbyPlace(old.position)?.id||'';old.log.unshift({text:'Save updated: skill reset to your starting path; new sidewalk, needs and training rules now apply. Savings and story retained.',day:day(old)});}
- old.community??=initialCommunity();migrateInterior(old);old.version=4;return old;
+ old.community??=initialCommunity();migrateInterior(old);migrateTransitInterior(old);old.version=4;return old;
 }
 export function isNear(s:GameState,id:string){const p=placeById(id);return !s.transit&&!s.journey&&!!p&&distance(s.position,entrance(p))<=3;}
 function requirePlace(s:GameState,id:string){if(!isNear(s,id))throw new Error(`Walk to ${placeById(id)?.name||'the location'} first. Activities require you to be there.`);}
