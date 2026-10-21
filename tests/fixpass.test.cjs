@@ -5,7 +5,7 @@ const w=require('../work/fixpass-test/world.js'),n=require('../work/fixpass-test
 const fresh=()=>e.newGame({name:'Full-day tester',path:'local'});
 const at=(s,id)=>({...s,interior:undefined,position:w.entrance(w.placeById(id)),location:id});
 const indoors=s=>s.interior?.movement?e.applyCommand(s,{type:'interior_arrive'},s.interior.movement.startedAt+s.interior.movement.seconds*1000+1,.5).state:s;
-const act=(s,type,id,extra={})=>{if(type==='home'&&!s.interior&&e.isNear(s,l.homePlace(s)))s=e.applyCommand(s,{type:'enter_home'},100000,.5).state;return indoors(e.applyCommand(s,{type,id,...extra},100000,.5).state)};
+const act=(s,type,id,extra={})=>{if(['work','bathroom','activity'].includes(type)&&w.placeById(s.location)?.kind==='cafe'){if(!s.interior)s=e.applyCommand(s,{type:'enter_cafe',id:s.location},100000,.5).state;const use=(state,id,mode)=>indoors(e.applyCommand(state,{type:'interior_use',id,mode},100000,.5).state);if(type==='activity'){s=use(s,'counter','meal');s=use(s,'register');s=use(s,'seat-a');return use(s,'seat-a','eat');}return use(s,type==='work'?'worktop':'toilet');}if(type==='home'&&!s.interior&&e.isNear(s,l.homePlace(s)))s=e.applyCommand(s,{type:'enter_home'},100000,.5).state;return indoors(e.applyCommand(s,{type,id,...extra},100000,.5).state)};
 const finish=s=>e.applyCommand(s,{type:'arrive'},s.journey.startedAt+s.journey.seconds*1000+1,.5).state;
 const go=(s,id)=>{if(s.interior)s=act(s,'exit_home');return finish(act(s,'walk',id));};
 
@@ -48,7 +48,7 @@ test('Toronto date-based solar times match mid October and handle DST',()=>{
 test('critical needs force rest and limit nonessential actions while washrooms remain accessible',()=>{
  let s=at(fresh(),'queen');s.needs.energy=0;for(const type of ['walk','wait','talk','apply'])assert.throws(()=>act(s,type,'home'),/must rest/);s=finish(act(s,'rest'));assert.ok(s.needs.energy>=20);
  s.needs.bladder=0;for(const type of ['talk','wait','apply','view_home','groceries'])assert.throws(()=>act(s,type,'room'),/bathroom/);s=act(s,'bathroom');assert.ok(s.needs.bladder>90);
- s.position=t.stopById('sheppard').point;s.location='';assert.ok(l.washroomHere(s));s=act(s,'bathroom');s.position=t.stopById('union').point;assert.equal(l.washroomHere(s),false);
+ s=act(s,'exit_home');s.position=t.stopById('sheppard').point;s.location='';assert.ok(l.washroomHere(s));s=act(s,'bathroom');s.position=t.stopById('union').point;assert.equal(l.washroomHere(s),false);
  s=at(s,'stc');s.minutes=600;assert.ok(l.washroomHere(s));
 });
 test('North York includes Downsview and York University; upper branch stays east of Humber',()=>{
