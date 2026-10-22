@@ -1,6 +1,6 @@
 import type {GameState,Command} from './engine';
 import {advanceLife,lifeAction,homePlace,requireNeeds} from './life';
-import {entrance,placeById,distance,pointAlong,pathLength,type Point} from './world';
+import {entrance,placeById,distance,pointAlong,pathLength,isBankPlace,type Point} from './world';
 import {isOpen} from './calendar';
 import ECONOMY from '../../config/economy.json';
 import {homeLayout,cafeLayout,bankLayout,homeTier,LAYOUT_VERSION,type HomeTier,type HomeLayout} from './interior-layouts';
@@ -9,7 +9,7 @@ export type InteriorState={kind?:'home'|'cafe'|'bank';layoutVersion?:number;plac
 export const interiorLayout=(i:InteriorState)=>i.kind==='cafe'?cafeLayout():i.kind==='bank'?bankLayout():homeLayout(i.tier);
 export const isPublicInterior=(i?:InteriorState)=>i?.kind==='cafe'||i?.kind==='bank';
 export const CAFE_MENU=[{id:'meal',name:'Breakfast sandwich & coffee',price:ECONOMY.prices.cafeMeal,hunger:55,energy:8},{id:'toast',name:'Toast & tea',price:Math.round(ECONOMY.prices.cafeMeal*.65),hunger:35,energy:5},{id:'coffee',name:'House coffee',price:Math.round(ECONOMY.prices.cafeMeal*.3),hunger:5,energy:12}];
-export function migrateInterior(s:GameState){const i=s.interior;if(!i)return;if(i.kind==='cafe'){if(placeById(i.place)?.kind!=='cafe'){delete s.interior;return;}}else if(i.kind==='bank'){if(i.place!=='bank'){delete s.interior;return;}}else if(i.place!==homePlace(s)){delete s.interior;return;}const tier=homeTier(s.life.housing.type);if(i.layoutVersion!==LAYOUT_VERSION||!isPublicInterior(i)&&i.tier!==tier){s.interior={kind:i.kind||'home',layoutVersion:LAYOUT_VERSION,place:i.place,tier,position:interiorLayout({...i,tier}).door,...(i.order?{order:i.order}:{})};}}
+export function migrateInterior(s:GameState){const i=s.interior;if(!i)return;if(i.kind==='cafe'){if(placeById(i.place)?.kind!=='cafe'){delete s.interior;return;}}else if(i.kind==='bank'){if(!isBankPlace(i.place)){delete s.interior;return;}}else if(i.place!==homePlace(s)){delete s.interior;return;}const tier=homeTier(s.life.housing.type);if(i.layoutVersion!==LAYOUT_VERSION||!isPublicInterior(i)&&i.tier!==tier){s.interior={kind:i.kind||'home',layoutVersion:LAYOUT_VERSION,place:i.place,tier,position:interiorLayout({...i,tier}).door,...(i.order?{order:i.order}:{})};}}
 export function insideWalkable(p:Point,l:HomeLayout,r=.27){return p.every(Number.isFinite)&&Math.abs(p[0])<l.width/2-r&&Math.abs(p[1])<l.depth/2-r&&![...l.objects,...l.walls].some(o=>Math.abs(p[0]-o.x)<o.width/2+r&&Math.abs(p[1]-o.z)<o.depth/2+r)}
 export function interiorSegment(a:Point,b:Point,l:HomeLayout){const n=Math.max(1,Math.ceil(distance(a,b)/.12));for(let i=0;i<=n;i++)if(!insideWalkable([a[0]+(b[0]-a[0])*i/n,a[1]+(b[1]-a[1])*i/n],l))return false;return true}
 /** Small half-unit grid: walls and furniture share the same footprints as the renderer. */
@@ -46,7 +46,7 @@ function executeObject(s:GameState,id:string,mode:string|undefined,now:number){
 export function interiorCommand(s:GameState,c:Command,now:number):string|null{
  const i=s.interior;
  if(c.type==='enter_cafe'){if(i)throw new Error('Exit this interior first.');const p=placeById(c.id||s.location);if(!p||p.kind!=='cafe'||s.journey||distance(s.position,entrance(p))>3)throw new Error('Walk to the café door first.');if(!isOpen(p,s.minutes))throw new Error('The café is closed. Opening hours are 7:00–20:00.');delete s.life.restSeat;s.location=p.id;s.interior={kind:'cafe',layoutVersion:LAYOUT_VERSION,place:p.id,tier:'room',position:cafeLayout().door,queue:s.minutes%1440<600||s.minutes%1440>=720&&s.minutes%1440<840?2:0};return 'Welcome in. Order at the counter, pay at the till, then choose a seat.';}
- if(c.type==='enter_bank'){if(i)throw new Error('Exit this interior first.');const p=placeById(c.id||'bank');if(!p||p.id!=='bank'||s.journey||distance(s.position,entrance(p))>3)throw new Error('Walk to the bank door first.');if(!isOpen(p,s.minutes))throw new Error('The bank is closed. Open weekdays, 9 am–5 pm.');delete s.life.restSeat;s.location=p.id;s.interior={kind:'bank',layoutVersion:LAYOUT_VERSION,place:p.id,tier:'room',position:bankLayout().door};return 'Welcome to your credit union. Walk to the teller or ATM, then open your banking.';}
+ if(c.type==='enter_bank'){if(i)throw new Error('Exit this interior first.');const p=placeById(c.id||'bank');if(!p||!isBankPlace(p.id)||s.journey||distance(s.position,entrance(p))>3)throw new Error('Walk to the bank door first.');if(!isOpen(p,s.minutes))throw new Error('The bank is closed. Open weekdays, 9 am–5 pm.');delete s.life.restSeat;s.location=p.id;s.interior={kind:'bank',layoutVersion:LAYOUT_VERSION,place:p.id,tier:'room',position:bankLayout().door};return 'Welcome to your credit union. Take a number, then see a teller or advisor.';}
  if(c.type==='enter_home'){if(i)return 'You are already inside.';enterHome(s);return 'Welcome home. Tap furniture to walk over and use it.';}
  if(!i){if(c.type.startsWith('interior_')||c.type==='exit_home')throw new Error('Enter your home first.');return null}
  if(c.type==='bank'&&c.origin==='phone')return null;// phone banking works from anywhere, including indoors

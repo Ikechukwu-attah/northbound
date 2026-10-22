@@ -5,7 +5,7 @@ import {initialCommunity,communityAction,type CommunityState} from './activities
 import {initialLife,advanceLife,lifeAction,ECONOMY,PATHS,requireNeeds,emptyBank,type LifeState,type PathId} from './life';
 import {type Appearance} from './characters';
 import { PEOPLE,type DistrictId,type Need } from './data';
-import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,onFootpath,districtAt,nearbyPlace,snapPoint,nearestPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
+import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,onFootpath,districtAt,nearbyPlace,snapPoint,nearestPlace,isBankPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
 import {placeGeo,stopGeo,haversineMetres} from './geo';
 import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES} from './transit';
 export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number;vehicleMode?:'bus'|'streetcar'|'subway';restSeat?:RestSeat;enterHome?:boolean;enterCafe?:boolean;enterBank?:boolean};
@@ -70,7 +70,7 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   if(bike&&(s.needs.energy<20||s.needs.bladder<15))throw new Error('Too exhausted or uncomfortable to cycle. Walk to a bathroom or a place to rest.');
   if(bike&&!s.bike)throw new Error('Explore three districts to unlock the community loan bike.');
   if(length<.1)throw new Error('You are already here.');
-  s.journey={kind:bike?'bike':'walk',path,startedAt:now,seconds:Math.max(.3,Math.min(90,length/(bike?12:s.needs.energy<20?3.5:7))),minutes:travelEstimate(s,target,destination?.id||(stop?'stop:'+stop.id:undefined),bike).minutes,label:destination?.name||stop?.name||'Selected sidewalk',detail:bike?'Cycling via connected streets':'Walking via sidewalks and crossings'+(s.needs.energy<20?' · exhausted, walking ~50% slower':''),destination:destination?.id,enterHome:c.mode==='enter-home'&&destination?.id===(s.life.housing.place||'home'),enterCafe:c.mode==='enter-cafe'&&destination?.kind==='cafe',enterBank:c.mode==='enter-bank'&&destination?.id==='bank',waitSeconds:0};message=`${bike?'Cycling':'Walking'} to ${s.journey.label}.`;break;
+  s.journey={kind:bike?'bike':'walk',path,startedAt:now,seconds:Math.max(.3,Math.min(90,length/(bike?12:s.needs.energy<20?3.5:7))),minutes:travelEstimate(s,target,destination?.id||(stop?'stop:'+stop.id:undefined),bike).minutes,label:destination?.name||stop?.name||'Selected sidewalk',detail:bike?'Cycling via connected streets':'Walking via sidewalks and crossings'+(s.needs.energy<20?' · exhausted, walking ~50% slower':''),destination:destination?.id,enterHome:c.mode==='enter-home'&&destination?.id===(s.life.housing.place||'home'),enterCafe:c.mode==='enter-cafe'&&destination?.kind==='cafe',enterBank:c.mode==='enter-bank'&&isBankPlace(destination?.id),waitSeconds:0};message=`${bike?'Cycling':'Walking'} to ${s.journey.label}.`;break;
  }
  case 'transit':case 'fast':{
   const targetPlace=c.type==='fast'?placeById(c.id||''):undefined;
@@ -108,7 +108,7 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   if(j.restSeat&&fraction>=1)settlePosition(s,j.restSeat.access);
   if(c.type==='arrive'&&fraction>=1&&j.enterHome&&j.destination===(s.life.housing.place||'home')){enterHome(s);message='Welcome home. Tap the furniture to use it.';break;}
   if(c.type==='arrive'&&fraction>=1&&j.enterCafe){try{message=interiorCommand(s,{type:'enter_cafe',id:j.destination},now)!;}catch(e){message=e instanceof Error?e.message:'Café is closed.';}break;}
-  if(c.type==='arrive'&&fraction>=1&&j.enterBank){try{message=interiorCommand(s,{type:'enter_bank',id:'bank'},now)!;}catch(e){message=e instanceof Error?e.message:'The bank is closed.';}break;}
+  if(c.type==='arrive'&&fraction>=1&&j.enterBank){try{message=interiorCommand(s,{type:'enter_bank',id:j.destination},now)!;}catch(e){message=e instanceof Error?e.message:'The bank is closed.';}break;}
   message=fraction>=1?`Arrived at ${j.label}. ${j.minutes} game minutes travelled.`:'Walk paused. Your position and elapsed travel time are saved.';break;
  }
  case 'travel':throw new Error('Use Explore to find a visible TTC stop. District teleporting has been retired.');

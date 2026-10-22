@@ -36,9 +36,15 @@ const services:WorldSpot[]=[
  {id:'housing',name:'Housing resource centre',district:'toronto',kind:'service',x:-84,z:-60,color:'#c39a7b',description:'View listings, arrange a viewing, and apply using income, savings or a guarantor.',activity:'Find housing'},
  {id:'college',name:'Community learning centre',district:'toronto',kind:'service',x:36,z:-108,color:'#b2b4a0',description:'Classes, training and a weekly volunteer programme.',activity:'Study & training'}
 ];
+/** Neighbourhood Credit Union branches (one brand). More per-district branches can be added here
+ * once each has a curated walkable footprint and an OSM geo anchor. */
+export const isBankPlace=(id?:string)=>id==='bank'||!!id&&id.startsWith('bank-');
+export const BANK_PLACE_IDS=['bank'];
 export const WORLD_DISTRICTS=DISTRICTS.map(d=>({...d,spots:[...d.spots.map(s=>({...s,district:d.id,x:cells[s.id][0]*BLOCK+12,z:cells[s.id][1]*BLOCK+12})),...services.filter(p=>p.district===d.id),...COMMUNITY_PLACES.filter(p=>p.district===d.id)]}));
 export const PLACES:WorldSpot[]=WORLD_DISTRICTS.flatMap(d=>d.spots);
 export const placeById=(id:string)=>PLACES.find(p=>p.id===id);
+export const BANK_PLACES=()=>BANK_PLACE_IDS.map(id=>placeById(id)!).filter(Boolean);
+export const nearestBankPlace=(p:Point)=>BANK_PLACES().sort((a,b)=>distance(p,entrance(a))-distance(p,entrance(b)))[0];
 export const entrance=(p:Spot):Point=>p.kind==='home'?homeEntrance(p).landing:[p.x,p.z+7];
 export const distance=(a:Point,b:Point)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 export const sidewalk=(n:number)=>Math.round((n+5)/BLOCK)*BLOCK-5;

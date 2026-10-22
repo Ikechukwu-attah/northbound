@@ -111,6 +111,16 @@ test('item 6 — a city ATM (origin atm) dispenses cash with a fee; non-cash ops
  assert.throws(()=>e.applyCommand(s,{type:'bank',id:'loan_take',amount:100000,origin:'atm'},now,.5),/only dispenses and accepts cash/);
 });
 
+test('item 6 — branch places are recognised via isBankPlace and route to the bank interior',()=>{
+ for(const id of w.BANK_PLACE_IDS){
+  assert.ok(w.isBankPlace(id),id+' is a branch');
+  let s=e.migrateState(e.newGame({name:'B',path:'local'}));s.position=w.entrance(w.placeById(id));s.location=id;s.journey=null;for(const k of Object.keys(s.needs))s.needs[k]=90;
+  s=e.applyCommand(s,{type:'enter_bank',id},now,.5).state;
+  assert.equal(s.interior&&s.interior.kind,'bank');assert.equal(s.interior.place,id);
+ }
+ assert.ok(w.isBankPlace('bank-ny')&&!w.isBankPlace('phone')&&!w.isBankPlace('college'));
+});
+
 test('legacy saves migrate to a complete bank with wallet and plan defaults',()=>{
  const legacy=e.migrateState(e.newGame({name:'Old',path:'local'}));delete legacy.life.bank;delete legacy.wallet;
  const m=e.migrateState(legacy);
