@@ -113,3 +113,5 @@
 /* Bank panel: amount input and action rows. */
 .bank-amount{display:block;margin:9px 0}.bank-amount input,.bank-amount select{display:block;width:100%;margin-top:4px;padding:9px;border:1px solid #c5cfb9;border-radius:8px;background:#fbfaf3;color:#2d4e3b;font-size:15px}
 .bank-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}.bank-actions button{flex:1;min-width:120px}
+/* Secondary wallet-cash chip in the topbar (chequing is the primary). */
+.wallet.cash{background:#eef2e4;border-color:#cfd8c2}.wallet.cash strong{font-size:13px}

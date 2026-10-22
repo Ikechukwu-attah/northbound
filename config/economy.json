@@ -164,6 +164,31 @@
   "loanMinCredit": 600,
   "lineLimit": 500000,
   "lineRateMonthly": 0.0058,
-  "lineMinCredit": 640
+  "lineMinCredit": 640,
+  "plans": {
+   "basic": {
+    "fee": 400,
+    "waiver": 300000
+   },
+   "plus": {
+    "fee": 1100,
+    "waiver": 400000
+   },
+   "premium": {
+    "fee": 1700,
+    "waiver": 600000
+   }
+  },
+  "atmOwnFee": 0,
+  "atmOtherFee": 250,
+  "loanMinPayRate": 0.03,
+  "loanMinPayFloor": 5000,
+  "lineMinPayRate": 0.03,
+  "lineMinPayFloor": 2500,
+  "latePaymentFee": 4500,
+  "missedCreditDrop": 25,
+  "collectionsDays": 90,
+  "newcomerLoanMax": 300000,
+  "etransferLimit": 500000
  }
 }
