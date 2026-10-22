@@ -1,15 +1,169 @@
 {
- "lastChecked":"2026-10-14","currency":"CAD","unit":"integer cents",
- "sources":{"wage":"https://news.ontario.ca/en/release/1007239/ontario-raising-minimum-wage-to-protect-workers-and-support-a-competitive-economy","payroll":"https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032on-jan/t4032on-january-general-information.html","transit":"https://www.ttc.ca/Fares-and-passes","rentBenchmark":"https://trreb.ca/market-data/rental-market-report/"},
- "note":"Wage, TTC and tax parameters use checked published rates. Rents, retail prices, bills, job offers, benefits and events are representative game assumptions, not quotations or personal financial advice. Payroll is a simplified estimate.",
- "minimumWage":1795,
- "transit":{"adult":330,"cash":335,"transferMinutes":120,"monthlyCap":47},
- "wages":{"barista":1795,"courier":1900,"gallery":2200,"developer":3200,"warehouse":2050,"retail":1800,"cleaning":1900},
- "housing":{"family":0,"room":100000,"basement":180000,"apartment":225000,"two-bedroom":275000,"roommates":137500,"residence":95000,"temporary":133000},
- "bills":{"phone":3500,"internet":5000,"hydro":6000,"insurance":2500},
- "prices":{"coffee":350,"cafeMeal":1500,"marketMeal":1200,"groceries":9000,"cook":0,"cn":4500,"phoneSetup":2500,"securedDeposit":50000,"trainingCourse":12000,"tuitionTerm":350000,"phoneRepair":9000,"medicine":1500,"gift":2000,"household":1800,"umbrella":1800,"creditInterestMonthly":0.0167},
- "startingCash":{"local":280000,"mover":350000,"student":450000,"newcomer":367000,"legacy":25000},
- "studentLoan":1200000,"familyHelp":20000,"benefitQuarterly":12500,
- "rewards":{"shift":0,"explore":0,"friends":0,"home":0},
- "payroll":{"periodDays":14,"periodsPerYear":26,"cppRate":0.0595,"cppBaseRate":0.0495,"cppExemption":350000,"cppCeiling":7460000,"cppMax":423045,"cpp2Rate":0.04,"cpp2Ceiling":8500000,"cpp2Max":41600,"eiRate":0.0163,"eiCeiling":6890000,"eiMax":112307,"federalBrackets":[[5852300,0.14],[11704500,0.205],[18144000,0.26],[25848200,0.29],[100000000000,0.33]],"ontarioBrackets":[[5389100,0.0505],[10778500,0.0915],[15000000,0.1116],[22000000,0.1216],[100000000000,0.1316]],"federalBpa":1645200,"federalBpaMin":1482900,"ontarioBpa":1298900,"employmentCredit":150100,"surtax1":581800,"surtax2":744600,"ontarioReduction":30000}
+ "lastChecked": "2026-10-14",
+ "currency": "CAD",
+ "unit": "integer cents",
+ "sources": {
+  "wage": "https://news.ontario.ca/en/release/1007239/ontario-raising-minimum-wage-to-protect-workers-and-support-a-competitive-economy",
+  "payroll": "https://www.canada.ca/en/revenue-agency/services/forms-publications/payroll/t4032-payroll-deductions-tables/t4032on-jan/t4032on-january-general-information.html",
+  "transit": "https://www.ttc.ca/Fares-and-passes",
+  "rentBenchmark": "https://trreb.ca/market-data/rental-market-report/"
+ },
+ "note": "Wage, TTC and tax parameters use checked published rates. Rents, retail prices, bills, job offers, benefits and events are representative game assumptions, not quotations or personal financial advice. Payroll is a simplified estimate.",
+ "minimumWage": 1795,
+ "transit": {
+  "adult": 330,
+  "cash": 335,
+  "transferMinutes": 120,
+  "monthlyCap": 47
+ },
+ "wages": {
+  "barista": 1795,
+  "courier": 1900,
+  "gallery": 2200,
+  "developer": 3200,
+  "warehouse": 2050,
+  "retail": 1800,
+  "cleaning": 1900
+ },
+ "housing": {
+  "family": 0,
+  "room": 100000,
+  "basement": 180000,
+  "apartment": 225000,
+  "two-bedroom": 275000,
+  "roommates": 137500,
+  "residence": 95000,
+  "temporary": 133000
+ },
+ "bills": {
+  "phone": 3500,
+  "internet": 5000,
+  "hydro": 6000,
+  "insurance": 2500
+ },
+ "prices": {
+  "coffee": 350,
+  "cafeMeal": 1500,
+  "marketMeal": 1200,
+  "groceries": 9000,
+  "cook": 0,
+  "cn": 4500,
+  "phoneSetup": 2500,
+  "securedDeposit": 50000,
+  "trainingCourse": 12000,
+  "tuitionTerm": 350000,
+  "phoneRepair": 9000,
+  "medicine": 1500,
+  "gift": 2000,
+  "household": 1800,
+  "umbrella": 1800,
+  "creditInterestMonthly": 0.0167
+ },
+ "startingCash": {
+  "local": 280000,
+  "mover": 350000,
+  "student": 450000,
+  "newcomer": 367000,
+  "legacy": 25000
+ },
+ "studentLoan": 1200000,
+ "familyHelp": 20000,
+ "benefitQuarterly": 12500,
+ "rewards": {
+  "shift": 0,
+  "explore": 0,
+  "friends": 0,
+  "home": 0
+ },
+ "payroll": {
+  "periodDays": 14,
+  "periodsPerYear": 26,
+  "cppRate": 0.0595,
+  "cppBaseRate": 0.0495,
+  "cppExemption": 350000,
+  "cppCeiling": 7460000,
+  "cppMax": 423045,
+  "cpp2Rate": 0.04,
+  "cpp2Ceiling": 8500000,
+  "cpp2Max": 41600,
+  "eiRate": 0.0163,
+  "eiCeiling": 6890000,
+  "eiMax": 112307,
+  "federalBrackets": [
+   [
+    5852300,
+    0.14
+   ],
+   [
+    11704500,
+    0.205
+   ],
+   [
+    18144000,
+    0.26
+   ],
+   [
+    25848200,
+    0.29
+   ],
+   [
+    100000000000,
+    0.33
+   ]
+  ],
+  "ontarioBrackets": [
+   [
+    5389100,
+    0.0505
+   ],
+   [
+    10778500,
+    0.0915
+   ],
+   [
+    15000000,
+    0.1116
+   ],
+   [
+    22000000,
+    0.1216
+   ],
+   [
+    100000000000,
+    0.1316
+   ]
+  ],
+  "federalBpa": 1645200,
+  "federalBpaMin": 1482900,
+  "ontarioBpa": 1298900,
+  "employmentCredit": 150100,
+  "surtax1": 581800,
+  "surtax2": 744600,
+  "ontarioReduction": 30000
+ },
+ "bank": {
+  "savingsMonthly": 0.0025,
+  "gicMin": 50000,
+  "gicTerms": [
+   {
+    "months": 3,
+    "return": 0.008
+   },
+   {
+    "months": 6,
+    "return": 0.017
+   },
+   {
+    "months": 12,
+    "return": 0.036
+   }
+  ],
+  "loanMin": 50000,
+  "loanMax": 1500000,
+  "loanRateMonthly": 0.0075,
+  "loanMinCredit": 600,
+  "lineLimit": 500000,
+  "lineRateMonthly": 0.0058,
+  "lineMinCredit": 640
+ }
 }
