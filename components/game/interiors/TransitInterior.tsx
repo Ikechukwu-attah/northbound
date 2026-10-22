@@ -11,7 +11,7 @@ import {distance,type Point} from '@/lib/game/world';
 import {movementKey,blocksMovement,directionVector,type Direction} from '@/lib/game/ui';
 import Human from '../Human';
 import {VehicleCabin,StationEnvironment} from './TransitKit';
-import {transitSeats} from '@/lib/game/transit-kit';
+import {transitSeats,TRAIN_FOG_END} from '@/lib/game/transit-kit';
 type Props={game:GameState;send:(c:Command)=>Promise<boolean>;busy:boolean;movementEnabled:boolean;reset:number;quality:boolean};
 const lineOf=(t:TransitState)=>LINES.find(l=>l.id===t.legs[t.index].line);
 const lineColorOf=(t:TransitState)=>t.mode==='subway'?(lineOf(t)?.color||'#da291c'):'#da291c';
@@ -42,7 +42,7 @@ function Scene({game,send,busy,movementEnabled,reset,quality,cabinView}:Props&{c
  // One tap on a hotspot: walk there and use it, no popup in between.
  const onTap=(id:string)=>(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();if(e.delta<5&&!locked&&guard())void send({type:'transit_use',id})};
  const activeOf=(o:typeof objects[number])=>o.id.startsWith('seat')?t.seat!==o.id:o.id==='board'?boardable:o.id==='door'?(t.stage==='boarding'||t.stage==='arrival'&&t.departAt==null):o.id==='reader'?!t.validated:true;
- return <><color attach="background" args={['#d9e2db']}/><ambientLight intensity={1.5}/><directionalLight position={[6,14,8]} intensity={2}/>{vehicle?<VehicleCabin t={t} minutes={game.minutes} cabinView={cabinView} quality={quality}/>:<StationEnvironment t={t} minutes={game.minutes}/>}
+ return <><color attach="background" args={['#d9e2db']}/>{t.mode==='subway'&&<fog attach="fog" args={['#d9e2db',65,TRAIN_FOG_END]}/>}<ambientLight intensity={1.5}/><directionalLight position={[6,14,8]} intensity={2}/>{vehicle?<VehicleCabin t={t} minutes={game.minutes} cabinView={cabinView} quality={quality}/>:<StationEnvironment t={t} minutes={game.minutes}/>}
  <mesh position={[0,.02,0]} rotation={[-Math.PI/2,0,0]} onClick={floor}><planeGeometry args={[vehicle?5.8:11.8,vehicle?17.8:13.8]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
  {/* Every hotspot is a visible, tappable ring sitting on the object itself; colour keyed by action (see legend). */}
  {objects.map(o=>{if(!activeOf(o))return null;const color=ringColor(o.id);

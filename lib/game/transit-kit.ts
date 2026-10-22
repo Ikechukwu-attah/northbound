@@ -72,3 +72,10 @@ export function subwayExterior():KitPart[]{
  for(const x of [-1.1,1.1])for(const z of [-7,7])p.push({p:[x,.12,z],s:[.3,.17,.3],c:c.black,shape:'tube',r:[0,0,Math.PI/2],finish:'metal'});
  return p;
 }
+
+/** Scenery extends beyond both cameras' far plane; interaction stays in the centre car.
+ * Instancing keeps repeated furniture in the same small set of draw calls. */
+export const TRAIN_SCENERY_OFFSETS=Array.from({length:21},(_,n)=>(n-10)*18);
+export const TRAIN_SCENERY_DEPTH=378;
+export const TRAIN_FOG_END=105;
+export function repeatTrainParts(parts:KitPart[],offsets=TRAIN_SCENERY_OFFSETS):KitPart[]{return offsets.flatMap(z=>parts.map(p=>({...p,p:[p.p[0],p.p[1],p.p[2]+z] as [number,number,number]})));}

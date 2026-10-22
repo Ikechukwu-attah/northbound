@@ -7,9 +7,9 @@ const act=(s,type,id,extra={})=>e.applyCommand(s,{type,id,...extra},now,.5).stat
 const use=(s,id)=>{s=act(s,'transit_use',id);if(s.transit?.movement){now=s.transit.movement.startedAt+s.transit.movement.seconds*1000+1;s=act(s,'transit_arrive')}return s};
 const start=(from,to)=>{let s=e.newGame({name:'Transit tester'});s.position=ttc.stopById(from).point;s.location='';return act(s,'transit',to,{mode:'playable'})};
 const board=s=>{if(s.transit.stage==='entrance')s=use(s,'gate');now=Math.max(now,s.transit.readyAt+1);s=use(s,'board');if(!s.transit.validated)s=use(s,'reader');return use(s,'seat-0')};
-const finish=s=>{let count=0;while(s.transit&&count++<150){const t=s.transit;if(t.stage==='entrance'||t.stage==='platform'||t.stage==='boarding'){s=board(s);continue}if(t.stage==='riding'){now=Math.max(now,t.readyAt+1);s=act(s,'transit_tick');continue}if(t.stage==='arrival'){if(t.departAt!=null){now=Math.max(now,t.departAt+1);s=act(s,'transit_tick');continue}if(t.mode!=='subway')s=use(s,'request');s=use(s,'door');continue}if(t.stage==='exit')s=use(s,'street');}assert.ok(count<150);return s};
+const finish=s=>{let count=0;while(s.transit&&count++<150){const t=s.transit;if(t.stage==='entrance'||t.stage==='platform'||t.stage==='boarding'){s=board(s);continue}if(t.stage==='riding'){now=Math.max(now,t.readyAt+1);s=act(s,'transit_tick');continue}if(t.stage==='arrival'){if(t.departAt!=null){now=Math.max(now,t.departAt+1);s=act(s,'transit_tick');continue}if(!require(dest+'/transit-interiors.js').transitDoorsOpen(t))s=use(s,'request');s=use(s,'door');continue}if(t.stage==='exit')s=use(s,'street');}assert.ok(count<150);return s};
 test('subway requires gate tap, platform wait, boarding, seat/stand, request and station exit',()=>{let s=start('nyc','sheppard'),cash=s.cash;assert.equal(s.transit.stage,'entrance');assert.equal(s.cash,cash);assert.throws(()=>act(s,'transit_use','board'),/object/);s=use(s,'gate');assert.equal(s.cash,cash-330);assert.equal(s.paidFares,1);assert.throws(()=>act(s,'transit_tick'),/Still/);now=s.transit.readyAt+1;s=use(s,'board');assert.equal(s.transit.stage,'boarding');s=use(s,'stand');assert.equal(s.transit.stage,'riding');assert.throws(()=>act(s,'work'),/transit objects/);s=use(s,'door');assert.equal(s.transit.stage,'riding');now=s.transit.readyAt+1;s=act(s,'transit_tick');assert.equal(s.transit.stage,'arrival');assert.equal(t.transitObjects(s.transit).some(o=>o.id==='request'),false);s=use(s,'door');assert.equal(s.transit.stage,'exit');s=use(s,'street');assert.equal(s.transit,undefined);assert.deepEqual(s.position,ttc.stopById('sheppard').point)});
-test('all surface modes board, charge at reader, retain name/state through reload, seat and exit at stop',()=>{for(const [from,to,mode]of [['queenwest','queen','streetcar'],['kennedy','stc','bus'],['union','harbour','streetcar']]){let s=start(from,to),cash=s.cash;assert.equal(s.transit.mode,mode);assert.equal(s.cash,cash);now=s.transit.readyAt+1;s=use(s,'board');assert.equal(s.transit.stage,'boarding');s=use(s,'seat-0');assert.equal(s.transit.stage,'boarding');assert.equal(s.cash,cash);s=use(s,'reader');assert.equal(s.cash,cash-330);s=use(s,'seat-0');assert.equal(s.transit.seat,'seat-0');s=e.migrateState(JSON.parse(JSON.stringify(s)));assert.equal(s.name,'Transit tester');assert.equal(s.transit.seat,'seat-0');s=finish(s);assert.deepEqual(s.position,ttc.stopById(to).point);assert.equal(s.cash,cash-330)}});
+test('all surface modes board, charge at reader, retain name/state through reload, seat and exit at stop',()=>{for(const [from,to,mode]of [['queenwest','queen','streetcar'],['rouge','stc','bus'],['union','harbour','streetcar']]){let s=start(from,to),cash=s.cash;assert.equal(s.transit.mode,mode);assert.equal(s.cash,cash);now=s.transit.readyAt+1;s=use(s,'board');assert.equal(s.transit.stage,'boarding');s=use(s,'seat-0');assert.equal(s.transit.stage,'boarding');assert.equal(s.cash,cash);s=use(s,'reader');assert.equal(s.cash,cash-330);s=use(s,'seat-0');assert.equal(s.transit.seat,'seat-0');s=e.migrateState(JSON.parse(JSON.stringify(s)));assert.equal(s.name,'Transit tester');assert.equal(s.transit.seat,'seat-0');s=finish(s);assert.deepEqual(s.position,ttc.stopById(to).point);assert.equal(s.cash,cash-330)}});
 test('mixed routes retain correct vehicles at transfers and one fare, with route elapsed minutes',()=>{let s=start('queenwest','donmills'),before=s.minutes,cash=s.cash,expected=ttc.transitRoute('queenwest','donmills').minutes;s=finish(s);assert.equal(s.minutes-before,expected);assert.equal(s.cash,cash-330);assert.equal(s.paidFares,1);assert.equal(s.tripCount,3);assert.deepEqual(s.position,ttc.stopById('donmills').point)});
 test('early arrival is rejected, walking survives reload and no outside action teleports a passenger',()=>{let s=start('finch','union');s=act(s,'transit_use','gate');assert.throws(()=>act(s,'transit_arrive'),/Still walking/);s=e.migrateState(JSON.parse(JSON.stringify(s)));assert.ok(s.transit.movement);for(const cmd of ['walk','fast','rest','enter_cafe'])assert.throws(()=>act(s,cmd,'queen'),/transit objects/)});
 test('subway→bus transfer in a station paid area skips the reader, charging one fare',()=>{
@@ -39,22 +39,22 @@ test('selected bus origin is retained, validated and never silently replaced',()
 test('every bus connector boards through a sidewalk approach and completes the physical ride',()=>{
  for(const line of ttc.LINES.filter(l=>l.mode==='bus')){
   const from=line.stops[0],to=line.stops[1];let s=start(from,to);assert.equal(s.transit.mode,'bus');
-  const tr=s.transit,layout=t.transitLayout(tr),door=t.transitObjects(tr).find(o=>o.id==='board');
+  if(s.transit.stage==='entrance')s=use(s,'gate');const tr=s.transit,layout=t.transitLayout(tr),door=t.transitObjects(tr).find(o=>o.id==='board');
   const path=i.interiorPath(tr.position,door.use,layout);assert.ok(path.every(p=>p[0]<4.25));
   for(const x of [4.5,5.5])assert.throws(()=>i.interiorPath(tr.position,[x,0],layout),/floor|route/);
-  const before=s.cash;s=finish(s);assert.equal(s.transit,undefined);assert.deepEqual(s.position,ttc.stopById(to).point);assert.equal(s.cash,before-330);
+  const before=s.cash,paid=s.transit.paid;s=finish(s);assert.equal(s.transit,undefined);assert.deepEqual(s.position,ttc.stopById(to).point);assert.equal(s.cash,before-(paid?0:330));
  }
 });
 test('a rider can step off the parked bus, including after a refused fare, then reboard without double charging',()=>{
- let s=start('kennedy','stc');s.cash=0;now=s.transit.readyAt+1;s=use(s,'board');s=use(s,'reader');assert.equal(s.transit.validated,false);s=use(s,'door');assert.equal(s.transit.stage,'platform');s=use(s,'street');assert.equal(s.transit,undefined);
- s=start('kennedy','stc');let cash=s.cash;now=s.transit.readyAt+1;s=use(s,'board');s=use(s,'reader');assert.equal(s.cash,cash-330);s=use(s,'door');s=use(s,'board');s=use(s,'reader');assert.equal(s.cash,cash-330);s=use(s,'stand');assert.equal(s.transit.stage,'riding');s=finish(s);assert.equal(s.cash,cash-330);
+ let s=start('rouge','stc');s.cash=0;now=s.transit.readyAt+1;s=use(s,'board');s=use(s,'reader');assert.equal(s.transit.validated,false);s=use(s,'door');assert.equal(s.transit.stage,'platform');s=use(s,'street');assert.equal(s.transit,undefined);
+ s=start('rouge','stc');let cash=s.cash;now=s.transit.readyAt+1;s=use(s,'board');s=use(s,'reader');assert.equal(s.cash,cash-330);s=use(s,'door');s=use(s,'board');s=use(s,'reader');assert.equal(s.cash,cash-330);s=use(s,'stand');assert.equal(s.transit.stage,'riding');s=finish(s);assert.equal(s.cash,cash-330);
 });
 test('bus entry waits for the approach to finish and saved approaches resume at the front door',()=>{
- let s=start('kennedy','stc');now=s.transit.readyAt+1;s=act(s,'transit_use','board');assert.equal(s.transit.stage,'platform');assert.ok(s.transit.movement);assert.throws(()=>act(s,'transit_arrive'),/Still walking/);
+ let s=start('rouge','stc');now=s.transit.readyAt+1;s=act(s,'transit_use','board');assert.equal(s.transit.stage,'platform');assert.ok(s.transit.movement);assert.throws(()=>act(s,'transit_arrive'),/Still walking/);
  s=e.migrateState(JSON.parse(JSON.stringify(s)));now=s.transit.movement.startedAt+s.transit.movement.seconds*1000+1;s=act(s,'transit_arrive');assert.equal(s.transit.stage,'boarding');assert.equal(s.transit.validated,false);assert.equal(s.name,'Transit tester');
 });
 test('older surface saves in the roadway migrate onto the sidewalk without changing fare or destination',()=>{
- let s=start('kennedy','stc');s.transit.layoutVersion=2;s.transit.position=[5.5,0];s.transit.movement={path:[[5.5,0],[5.5,4]],seconds:4,startedAt:now};s.transit.paid=true;s=e.migrateState(JSON.parse(JSON.stringify(s)));assert.ok(i.insideWalkable(s.transit.position,t.transitLayout(s.transit)));assert.ok(s.transit.position[0]<4.25);assert.equal(s.transit.movement,undefined);assert.equal(s.transit.paid,true);assert.equal(s.transit.destination,'stc');
+ let s=start('rouge','stc');s.transit.layoutVersion=2;s.transit.position=[5.5,0];s.transit.movement={path:[[5.5,0],[5.5,4]],seconds:4,startedAt:now};s.transit.paid=true;s=e.migrateState(JSON.parse(JSON.stringify(s)));assert.ok(i.insideWalkable(s.transit.position,t.transitLayout(s.transit)));assert.ok(s.transit.position[0]<4.25);assert.equal(s.transit.movement,undefined);assert.equal(s.transit.paid,true);assert.equal(s.transit.destination,'stc');
 });
 test('overlapping stop approach radii use the chosen stop even when another is nearer',()=>{
  let s=e.newGame({name:'Selected stop'});const chosen=ttc.stopById('queenyonge');s.position=[chosen.point[0]+2.5,chosen.point[1]];assert.equal(ttc.nearestStop(s.position).id,'queen');
@@ -62,4 +62,34 @@ test('overlapping stop approach radii use the chosen stop even when another is n
 });
 test('overnight replacement uses a bus stop, PRESTO reader, seat and requested exit',()=>{
  let s=e.newGame({name:'Night rider'});s.minutes=180;s.position=ttc.stopById('nyc').point;s=act(s,'transit','sheppard',{origin:'nyc',mode:'playable'});assert.equal(s.transit.mode,'bus');assert.equal(s.transit.stage,'platform');const minutes=s.minutes;s=finish(s);assert.equal(s.transit,undefined);assert.ok(s.minutes>=minutes+20);assert.deepEqual(s.position,ttc.stopById('sheppard').point);
+});
+test('903 Kennedy ↔ Scarborough Centre uses station gates, paid bus bays and automatic terminal doors',()=>{
+ for(const [from,to]of [['kennedy','stc'],['stc','kennedy']]){
+  let s=start(from,to),cash=s.cash,minutes=s.minutes;const route=ttc.transitRoute(from,to);
+  assert.deepEqual(route.legs.map(l=>l.line),['903']);assert.equal(s.transit.mode,'bus');assert.equal(s.transit.stage,'entrance');
+  assert.throws(()=>act(s,'transit_use','board'),/object/);assert.equal(s.cash,cash);
+  s=use(s,'gate');assert.equal(s.transit.stage,'platform');assert.equal(s.transit.paidArea,true);assert.equal(s.cash,cash-330);assert.equal(s.paidFares,1);
+  s=e.migrateState(JSON.parse(JSON.stringify(s)));now=s.transit.readyAt+1;s=use(s,'board');assert.equal(s.transit.validated,true);assert.ok(!t.transitObjects(s.transit).some(o=>o.id==='reader'));
+  const sign=t.busDestination(s.transit);assert.match(sign.title,/903/);assert.ok(sign.title.includes(ttc.stopById(to).name));assert.equal(sign.via,'Scarborough Busway');
+  s=use(s,'seat-0');assert.equal(t.transitDoorsOpen(s.transit),false);now=s.transit.readyAt+1;s=act(s,'transit_tick');
+  assert.equal(s.transit.stage,'arrival');assert.equal(s.transit.requested,false);assert.equal(t.transitDoorsOpen(s.transit),true);assert.match(t.transitStatus(s.transit),/Doors open/);assert.ok(!t.transitObjects(s.transit).some(o=>o.id==='request'));
+  s=use(s,'door');assert.equal(s.transit.stage,'exit');s=use(s,'street');assert.equal(s.transit,undefined);assert.deepEqual(s.position,ttc.stopById(to).point);assert.equal(s.minutes-minutes,route.minutes);assert.equal(s.cash,cash-330);
+  // Return within two hours: gate validation remains physical, but no additional fare.
+  s=act(s,'transit',from,{origin:to,mode:'playable'});s=use(s,'gate');assert.equal(s.cash,cash-330);s=finish(s);assert.deepEqual(s.position,ttc.stopById(from).point);assert.equal(s.paidFares,1);
+ }
+});
+test('Rouge Hill has 38A via Scarborough Centre; legacy route saves keep their fares and ride progress',()=>{
+ assert.equal(ttc.LINES.some(l=>l.id==='scarborough'),false);assert.deepEqual(ttc.LINES.find(l=>l.id==='903').stops,['kennedy','stc']);assert.deepEqual(ttc.LINES.find(l=>l.id==='38A').stops,['kennedy','stc','rouge']);
+ assert.ok(ttc.transitRoute('stc','rouge').legs.every(l=>l.line==='38A'));
+ let s=start('kennedy','rouge');s.transit.legs=[{from:'kennedy',to:'stc',line:'scarborough',minutes:16},{from:'stc',to:'rouge',line:'scarborough',minutes:20}];s.transit.stage='riding';s.transit.index=1;s.transit.paid=true;s.transit.validated=true;s.transit.layoutVersion=3;s.transit.position=[.5,6];const cash=s.cash,ready=s.transit.readyAt;
+ s=e.migrateState(JSON.parse(JSON.stringify(s)));assert.deepEqual(s.transit.legs.map(l=>l.line),['903','38A']);assert.equal(s.transit.index,1);assert.equal(s.transit.readyAt,ready);assert.equal(s.transit.paid,true);assert.equal(s.cash,cash);s=finish(s);assert.deepEqual(s.position,ttc.stopById('rouge').point);assert.equal(s.cash,cash);
+});
+test('bus terminals open automatically while ordinary street stops still require a request',()=>{
+ for(const line of ttc.LINES.filter(l=>l.mode==='bus'))for(const at of [line.stops[0],line.stops.at(-1)]){
+  const tr={stage:'arrival',mode:'bus',requested:false,legs:[{from:line.stops.find(id=>id!==at),to:at,line:line.id}],index:0};assert.equal(t.transitDoorsOpen(tr),true,at);
+ }
+ let s=start('broadview','ey');assert.equal(s.transit.stage,'entrance');s=board(s);now=s.transit.readyAt+1;s=act(s,'transit_tick');assert.equal(t.transitDoorsOpen(s.transit),false);s=use(s,'door');assert.equal(s.transit.stage,'arrival');s=use(s,'request');assert.equal(t.transitDoorsOpen(s.transit),true);s=use(s,'door');assert.equal(s.transit,undefined);
+});
+test('bus to subway at Kennedy transfers within the paid station without a second gate or fare',()=>{
+ let s=start('stc','warden'),cash=s.cash;s=board(s);now=s.transit.readyAt+1;s=act(s,'transit_tick');assert.equal(t.transitDoorsOpen(s.transit),true);s=use(s,'door');assert.equal(s.transit.mode,'subway');assert.equal(s.transit.stage,'platform');assert.equal(s.transit.paidArea,true);s=finish(s);assert.equal(s.cash,cash-330);assert.equal(s.paidFares,1);assert.deepEqual(s.position,ttc.stopById('warden').point);
 });
