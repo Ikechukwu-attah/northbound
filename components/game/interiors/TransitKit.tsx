@@ -7,6 +7,7 @@ import {stopById,LINES} from '@/lib/game/transit';
 import {transitStop,boardSign,transitDoorsOpen,transitPlatformSide,stationMirror,busDestination,type TransitState} from '@/lib/game/transit-interiors';
 import {npcAppearance} from '@/lib/game/characters';
 import Human from '../Human';
+import {advanceScenery,newSceneryMotion} from '@/lib/game/transit-motion';
 import TTCBus from '../TTCBus';
 
 function Batch({parts,shape,finish}:{parts:KitPart[];shape:string;finish:string}){
@@ -25,12 +26,12 @@ function Floor({width,depth}:{width:number;depth:number}){
 function Door({side,z,open}:{side:number;z:number;open:boolean}){const left=useRef<THREE.Group>(null),right=useRef<THREE.Group>(null);useFrame((_,dt)=>{for(const [g,sign]of [[left,-1],[right,1]] as const)if(g.current)g.current.position.z=THREE.MathUtils.damp(g.current.position.z,z+sign*(open?1.3:.43),9,dt)});const panel=useMemo<KitPart[]>(()=>[{p:[side*3,1.45,0],s:[.13,2.9,.84],c:C.silver,finish:'metal'},{p:[side*2.91,1.75,0],s:[.06,1.45,.62],c:C.black},{p:[side*2.87,1.75,0],s:[.025,1.25,.48],c:'#496066'},{p:[side*2.9,.12,0],s:[.1,.12,.82],c:C.yellow}], [side]);return <>{[-1,1].map((sign,n)=><group key={sign} ref={n?right:left} position={[0,0,z+sign*.43]}><KitParts parts={panel}/></group>)}</>}
 function GrabLoops({mode}:{mode:TransitState['mode']}){return <>{[-1.45,1.45].flatMap(x=>[-6,-3,0,3,6].map(z=><group key={x+':'+z} position={[x,2.52,z]}><mesh><torusGeometry args={[.11,.025,6,8]}/><meshStandardMaterial color={mode==='subway'?C.grip:C.yellow} roughness={.5}/></mesh><mesh position={[0,.18,0]}><cylinderGeometry args={[.02,.02,.22,6]}/><meshStandardMaterial color={C.silver} metalness={.6} roughness={.3}/></mesh></group>))}</>}
 function MovingView({t,cabinView}:{t:TransitState;cabinView:boolean}){
- const group=useRef<THREE.Group>(null),side=transitPlatformSide(t),subway=t.mode==='subway',atStation=subway&&t.stage!=='riding';
+ const motion=useRef(newSceneryMotion());const group=useRef<THREE.Group>(null),side=transitPlatformSide(t),subway=t.mode==='subway',atStation=subway&&t.stage!=='riding';
  const parts=useMemo(()=>rideEnvironment(subway,side,atStation),[subway,side,atStation]);
  // Keep the camera-facing wall cut away, but preserve the far wall and all ground.
  const visible=useMemo(()=>cabinView?parts:parts.filter(p=>!(subway&&p.p[0]>7&&p.s[1]>6)),[parts,cabinView,subway]);
  const roof=useMemo<KitPart[]>(()=>[{p:[0,6.15,0],s:[16,.3,WORLD_DEPTH],c:'#343b3c'}],[]);
- useFrame((_,dt)=>{if(group.current&&t.stage==='riding')group.current.position.z=(group.current.position.z+dt*5)%12});
+ useFrame(()=>{if(group.current)group.current.position.z=advanceScenery(motion.current,t,Date.now())});
  return <group ref={group}><KitParts parts={visible}/>{subway&&cabinView&&<KitParts parts={roof}/>}</group>;
 }
 function DistantDoors({side,open}:{side:number;open:boolean}){
