@@ -110,3 +110,5 @@
  .object-dismiss{min-width:40px;min-height:40px}
  .interior-heading h1{font-size:23px}
 }
+
+.scene-recovery-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.world-reload{padding:24px;text-align:center}.world-reload p{max-width:340px;line-height:1.5}
