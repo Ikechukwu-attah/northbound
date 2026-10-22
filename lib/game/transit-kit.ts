@@ -8,7 +8,19 @@ export function cabinFittings(kind:VehicleKind):KitPart[]{
  const p:KitPart[]=[],c=TTC_INTERIOR,rail=kind==='subway'?c.silver:c.yellow;
  const box=(at:KitPart['p'],s:KitPart['s'],color:string,finish:KitPart['finish']='matte',r?:KitPart['r'])=>p.push({p:at,s,c:color,finish,r});
  const tube=(at:KitPart['p'],length:number,radius=.035,color=rail,r?:KitPart['r'])=>p.push({p:at,s:[radius,length,radius],c:color,shape:'tube',finish:'metal',r});
- for(const seat of transitSeats(kind)){
+ if(kind==='subway'){
+  // Toronto Rocket: continuous longitudinal benches along both walls (seat pads on a shared frame), facing the aisle.
+  for(const side of [-1,1]){const x=side*2;
+   box([x,.33,-1.5],[1,.5,10],c.black);                      // continuous bench base
+   box([x,.6,-1.5],[1.08,.14,10.1],c.silver,'metal');        // continuous seat-pan frame
+   box([side*2.56,1.18,-1.5],[.14,1.05,10],c.silver,'metal');// continuous backrest frame on the wall side
+   for(const z of [-6,-4.5,-3,-1.5,0,1.5,3]){
+    box([x,.68,z],[.96,.13,1.28],c.red);                     // seat pad
+    box([side*2.49,1.2,z],[.1,.84,1.28],c.red);              // backrest pad
+    tube([x,.95,z-.72],.95,.022,c.silver,[Math.PI/2,0,side<0?Math.PI/2:-Math.PI/2]); // divider rail
+   }
+  }
+ } else for(const seat of transitSeats(kind)){
   const co=Math.cos(seat.rotation),si=Math.sin(seat.rotation),at=(x:number,y:number,z:number):KitPart['p']=>[seat.x+co*x+si*z,y+seat.raised,seat.z-si*x+co*z];
   box(at(0,.35,0),[.82,.48,.7],c.black);box(at(0,.59,0),[1.05,.16,1.12],c.silver,'metal',[0,seat.rotation,0]);box(at(0,.68,.03),[.96,.14,1.02],c.red,'matte',[0,seat.rotation,0]);
   box(at(0,1.12,-.5),[1.05,1.02,.15],c.silver,'metal',[0,seat.rotation,0]);box(at(0,1.15,-.395),[.93,.84,.11],c.red,'matte',[0,seat.rotation,0]);

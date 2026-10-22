@@ -85,7 +85,19 @@
 .transit-station-banner em{font-style:normal;font:700 10px/1 Arial,sans-serif;padding:3px 7px;border-radius:6px;color:#14211f}
 @media(max-width:620px){.transit-station-banner{top:120px;padding:6px 12px;gap:7px}.transit-station-banner strong{font-size:15px}}
 
-.transit-view-switch{position:absolute;top:166px;right:18px;z-index:14;display:flex;gap:3px;padding:3px;border-radius:10px;background:#e9e6d9;border:1px solid #bac3b8;box-shadow:0 3px 12px #243b3030}.transit-view-switch button{padding:8px 11px;font:600 12px Arial;color:#354d44;border:0;border-radius:7px;background:transparent;cursor:pointer;min-height:36px}.transit-view-switch button[aria-pressed=true]{background:#294d42;color:#fff6db}@media(max-width:620px){.transit-view-switch{top:137px;right:9px}.transit-view-switch button{font-size:10px;padding:6px 8px;min-height:32px}}
+.transit-view-switch{position:absolute;top:166px;right:18px;z-index:14;display:flex;gap:3px;padding:3px;border-radius:10px;background:#e9e6d9;border:1px solid #bac3b8;box-shadow:0 3px 12px #243b3030}.transit-view-switch button{padding:8px 11px;font:600 12px Arial;color:#354d44;border:0;border-radius:7px;background:transparent;cursor:pointer;min-height:36px}.transit-view-switch button[aria-pressed=true]{background:#294d42;color:#fff6db}
+/* Transit review: colour key for the tappable rings. */
+.transit-ring-legend{position:absolute;z-index:9;left:50%;top:210px;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:5px 12px;padding:6px 12px;max-width:calc(100vw - 24px);background:#fbf8efe8;border:1px solid #cdd3c2;border-radius:11px;box-shadow:0 4px 14px #28402f22;pointer-events:none;font:600 11px/1 Arial,sans-serif;color:#34493d}
+.transit-ring-legend span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}.transit-ring-legend i{width:11px;height:11px;border-radius:50%;box-shadow:0 0 0 1px #0002}
+/* Lazy-chunk failure / new-version refresh. */
+.world-reload{flex-direction:column;gap:12px}.world-reload button,.stale-build-banner button{padding:9px 16px;border-radius:9px;border:0;background:#294d42;color:#fff6db;font:600 13px Arial;cursor:pointer;min-height:40px}
+.stale-build-banner{position:absolute;z-index:40;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:8px 10px 8px 16px;border-radius:12px;background:#1d3130f2;color:#fff8e6;box-shadow:0 6px 20px #1d313055;font:600 13px Arial;max-width:calc(100vw - 24px)}
+@media(max-width:620px){
+ .transit-view-switch{top:auto;bottom:154px;right:8px}.transit-view-switch button{font-size:10px;padding:6px 8px;min-height:32px}
+ .transit-heading{top:54px;max-width:94vw}.transit-heading .eyebrow{font-size:9px}.transit-heading h1{font-size:17px;margin:1px auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:94vw}.transit-heading p{display:none}
+ .transit-station-banner{top:100px;max-width:calc(100vw - 14px)}.transit-station-banner strong{font-size:14px}
+ .transit-ring-legend{top:auto;bottom:208px;font-size:10px;gap:4px 9px;padding:5px 9px}
+}
 /* Transit/café review: larger touch targets for in-scene popups. */
 .object-actions button:not(.object-dismiss),.home-door-marker,.object-label{min-height:38px}
 @media(max-width:620px){

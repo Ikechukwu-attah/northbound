@@ -59,7 +59,7 @@ export function walkingPath(from:Point,to:Point):Point[]{
  const route=candidates.find(path=>path.every(p=>isWalkable(p)));if(!route)throw new Error('No clear sidewalk route is available.');return route.filter((p,i,a)=>!i||distance(p,a[i-1])>.001);
 }
 export const pathLength=(path:Point[])=>path.reduce((sum,p,i)=>sum+(i?distance(path[i-1],p):0),0);
-export function pointAlong(path:Point[],fraction:number):Point{let remain=pathLength(path)*Math.max(0,Math.min(1,fraction));for(let i=1;i<path.length;i++){const len=distance(path[i-1],path[i]);if(remain<=len){const t=len?remain/len:0;return [path[i-1][0]+(path[i][0]-path[i-1][0])*t,path[i-1][1]+(path[i][1]-path[i-1][1])*t];}remain-=len;}return path[path.length-1];}
+export function pointAlong(path:Point[],fraction:number):Point{if(fraction>=1)return path[path.length-1];if(fraction<=0)return path[0];let remain=pathLength(path)*Math.max(0,Math.min(1,fraction));for(let i=1;i<path.length;i++){const len=distance(path[i-1],path[i]);if(remain<=len){const t=len?remain/len:0;return [path[i-1][0]+(path[i][0]-path[i-1][0])*t,path[i-1][1]+(path[i][1]-path[i-1][1])*t];}remain-=len;}return path[path.length-1];}
 /** Shared estimate for UI, server journeys and access walks. Pace is fixed when departing. */
 export const walkMinutes=(path:Point[],bike=false,energy=100)=>Math.max(1,Math.ceil(pathLength(path)*METRES_PER_UNIT/(bike?250:80)))*(!bike&&energy<20?2:1);
 export const JOB_PLACES:Record<string,string>={barista:'queen',courier:'kensington',gallery:'cn',developer:'reference',warehouse:'islington',retail:'stc',cleaning:'nycentre'};

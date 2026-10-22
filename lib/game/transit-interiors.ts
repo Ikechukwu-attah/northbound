@@ -38,7 +38,7 @@ export function transitStatus(t:TransitState,now=Date.now()){
  if(t.stage==='platform')return now<t.readyAt?'Wait behind the yellow line · '+(t.mode==='subway'?'Train':'Vehicle')+' arriving…':'Doors open · Walk over to board';
  if(t.stage==='boarding')return 'At '+stopById(t.legs[t.index].from)!.name+' · '+(t.validated?'Choose a seat or stand at the rail':'Tap your card at the reader');
  if(t.stage==='exit')return 'Off the train · Walk through the exit to the street';
- if(t.stage==='arrival'){const name=stopById(t.legs[t.index].to)!.name;return t.departAt!=null?'At '+name+' · Doors open':'At '+name+' · Doors open · '+(t.mode==='subway'||t.requested?'Walk to exit':'Request exit to open doors');}
+ if(t.stage==='arrival'){const name=stopById(t.legs[t.index].to)!.name;if(t.departAt!=null)return 'At '+name+' · Doors open';return t.mode==='subway'||t.requested?'At '+name+' · Doors open · Walk to exit':'At '+name+' · Press the request strip to open the doors';}
  return 'Next stop: '+stopById(t.legs[t.index].to)!.name+(t.requested?' · Stop requested':t.seat?' · Seated':' · Standing');
 }
 /** Charges at most one fare per journey; returns the rider-facing fare line. */
@@ -64,9 +64,12 @@ function operate(s:GameState,id:string,now:number){
  if(id==='request'){if(t.stage==='boarding')throw new Error('Choose a seat or stand before departure.');t.requested=true;return t.stage==='arrival'?'Exit requested. Doors are open.':'Stop requested for '+stopById(t.legs[t.index].to)!.name+'.';}
  if(id==='door'){
   if(t.stage!=='arrival')throw new Error('The doors stay closed until the stop.');if(t.departAt!=null)throw new Error('This isn’t your stop — the train continues shortly.');if(t.mode!=='subway'&&!t.requested)throw new Error('Press the stop request button first.');
-  const at=t.legs[t.index].to,final=t.index===t.legs.length-1;delete t.seat;delete t.movement;t.requested=false;
+  const at=t.legs[t.index].to,final=t.index===t.legs.length-1,oldMode=t.mode;delete t.seat;delete t.movement;t.requested=false;
   if(final){if(t.mode!=='subway')return leave(s,at);t.stage='exit';t.position=[1.5,-2];return 'On the arrival platform. Walk to the station exit.';}
-  const paidArea=isSubwayStop(at);t.index++;t.mode=modeFor(t);t.paidArea=paidArea;t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return 'Transfer at '+stopById(at)!.name+'. Board '+LINES.find(l=>l.id===t.legs[t.index].line)!.name+(paidArea&&t.mode!=='subway'?' · same fare-paid area, no tap needed':'')+'.';
+  const paidArea=isSubwayStop(at);t.index++;t.mode=modeFor(t);t.paidArea=paidArea;
+  // Surface → subway: walk into the station and tap at the gate (a transfer is $0), rather than teleporting onto the platform.
+  if(t.mode==='subway'&&oldMode!=='subway'){t.validated=false;t.stage='entrance';t.position=[0,5.5];return 'Transfer at '+stopById(at)!.name+'. Enter the station and tap at the gate — your transfer is $0 — for '+LINES.find(l=>l.id===t.legs[t.index].line)!.name+'.';}
+  t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return 'Transfer at '+stopById(at)!.name+'. Board '+LINES.find(l=>l.id===t.legs[t.index].line)!.name+(paidArea&&t.mode!=='subway'?' · same fare-paid area, no tap needed':'')+'.';
  }
  throw new Error('Choose a transit object.');
 }

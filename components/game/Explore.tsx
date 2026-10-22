@@ -1,5 +1,5 @@
 'use client';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
 import {Bus,MapPin,Navigation,ArrowRight,Bike,Footprints} from 'lucide-react';
 import {DISTRICTS,money,type Spot,type DistrictId} from '@/lib/game/data';
 import {PLACES,placeById,nearestPlace,entrance,walkingPath,walkMinutes,pathLength,distance,type Point} from '@/lib/game/world';
@@ -28,6 +28,9 @@ export function CityMap({point,small=false,onStop,onDistrict,selectedStop}:{poin
 }
 export function Explore({game,busy,initialStop,initialExit,onCommand,onPlan,onChoose,onClose}:{game:GameState;busy:boolean;initialStop:string|null;initialExit?:string|null;onCommand:(c:Command)=>Promise<boolean>;onPlan?:(boarding:string,exit:string)=>void;onChoose:(s:Spot)=>void;onClose:()=>void}){
  const nearest=nearestStop(game.position);const [district,setDistrict]=useState<DistrictId>(game.district),[place,setPlace]=useState(game.location||'queen'),[boarding,setBoarding]=useState(initialStop||nearest.id),[exit,setExit]=useState(()=>initialExit||nearestStop(entrance(placeById(game.location||'queen')!)).id);
+ // Keep the parent in sync with the current board/exit choice so it survives walking to the
+ // boarding stop (the modal closes on the walk; reopening restores these via initialStop/initialExit).
+ useEffect(()=>{onPlan?.(boarding,exit)},[boarding,exit]);// eslint-disable-line react-hooks/exhaustive-deps
  // Choosing a destination also points the exit stop at whichever stop is nearest it.
  const choose=(id:string)=>{setPlace(id);setExit(nearestStop(entrance(placeById(id)!)).id);};
  const chosen=PLACES.find(p=>p.id===place)!;const from=stopById(boarding)!,to=stopById(exit)!;const path=walkingPath(game.position,entrance(chosen));const atStop=distance(game.position,from.point)<=3;

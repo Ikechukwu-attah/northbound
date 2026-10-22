@@ -13,7 +13,7 @@ export const STOPS:Stop[]=[
  // Line 4 · Sheppard.
  stop('bayview','Bayview',1,-13),stop('bessarion','Bessarion',2,-13),stop('leslie','Leslie',3,-13),stop('donmills','Don Mills',5,-13),
  // Surface stops, named by intersection in the TTC style.
- stop('queenbathurst','Queen St W at Bathurst St',-2.3,-2),stop('queenwest','Queen St W at Spadina Ave',-2,-2),stop('queenyonge','Queen St at Yonge St',-0.2,-2),stop('harbour','Queens Quay at Spadina Ave',1,0),stop('harbourfront','Queens Quay at Lower Simcoe St',1,-1),
+ stop('queenbathurst','Queen St W at Bathurst St',-2.3,-2),stop('queenwest','Queen St W at Spadina Ave',-2,-2),stop('queenuniversity','Queen St W at University Ave',-1.3,-2),stop('queenbay','Queen St at Bay St',-0.6,-2),stop('queenyonge','Queen St at Yonge St',-0.2,-2),stop('harbour','Queens Quay at Spadina Ave',1,0),stop('harbourfront','Queens Quay at Lower Simcoe St',1,-1),
  stop('stc','Scarborough Centre Station',11,-9),stop('bluffs','Brimley Rd at Bluffer’s Park',11,0),stop('rouge','Rouge Hill (Lawrence Ave E at Port Union Rd)',15,-8),stop('weston','Weston Rd at Lawrence Ave W',-5,-9),stop('york','Eglinton Ave W at Keele St',-4,-7),stop('mimico','Royal York Rd at Mimico GO',-7,-1),stop('lakeshore','Lake Shore Blvd W at Long Branch Loop',-9,0),stop('ey','Pape Ave at Cosburn Ave',4,-6),stop('taylor','O’Connor Dr at Taylor Creek Park',6,-7),stop('pearson','Pearson Airport · Terminal 1',-9,-8)];
 export type Line={id:string;name:string;color:string;mode:'subway'|'bus'|'streetcar';stops:string[];times:number[];wait:number};
 // Average in-service speeds (m/min) that turn real OSM station distances into leg times.
@@ -30,7 +30,7 @@ const RAW:Omit<Line,'times'>[]=[
  {id:'weston',name:'89 Weston',color:'#b7594c',mode:'bus',stops:['jane','weston','york','eglinton'],wait:8},
  {id:'lakeshore',name:'110 Islington South / Lakeshore',color:'#b7594c',mode:'bus',stops:['kipling','mimico','lakeshore'],wait:8},
  {id:'east',name:'72 Pape',color:'#b7594c',mode:'bus',stops:['broadview','ey','taylor','coxwell'],wait:8},
- {id:'queenstreet',name:'501 Queen',color:'#da291c',mode:'streetcar',stops:['queenbathurst','queenwest','queenyonge','queen'],wait:6},
+ {id:'queenstreet',name:'501 Queen',color:'#da291c',mode:'streetcar',stops:['queenbathurst','queenwest','queenuniversity','queenbay','queenyonge','queen'],wait:6},
  {id:'waterfront',name:'509 Harbourfront',color:'#da291c',mode:'streetcar',stops:['union','harbourfront','harbour'],wait:6}
 ];
 export const LINES:Line[]=RAW.map(l=>({...l,times:l.stops.slice(1).map((s,i)=>legMinutes(l.stops[i],s,l.mode))}));

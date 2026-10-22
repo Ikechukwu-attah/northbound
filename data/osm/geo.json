@@ -180,6 +180,20 @@
    ],
    "osm": "fallback"
   },
+  "queenuniversity": {
+   "c": [
+    -79.38699,
+    43.65037
+   ],
+   "osm": "fallback"
+  },
+  "queenbay": {
+   "c": [
+    -79.38345,
+    43.65245
+   ],
+   "osm": "fallback"
+  },
   "harbour": {
    "c": [
     -79.38137,
