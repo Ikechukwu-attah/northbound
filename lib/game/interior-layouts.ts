@@ -4,7 +4,7 @@ export type FurnitureKind='bed'|'stove'|'sink'|'shower'|'toilet'|'sofa'|'desk'|'
 export type Furniture={id:string;kind:FurnitureKind;x:number;z:number;width:number;depth:number;use?:Point;label?:string;action?:string;zone?:'bedroom'|'shared'|'bathroom'};
 export type Wall={x:number;z:number;width:number;depth:number;side?:'north'|'south'|'east'|'west'};
 export type Door={id:string;x:number;z:number;width:number;label:string;privacy?:boolean};
-export type HomeLayout={tier:HomeTier|'cafe';width:number;depth:number;door:Point;doors:Door[];objects:Furniture[];walls:Wall[];bathroom:{x:number;z:number;width:number;depth:number};palette:{floor:string;wall:string;accent:string}};
+export type HomeLayout={tier:HomeTier|'cafe'|'bank';width:number;depth:number;door:Point;doors:Door[];objects:Furniture[];walls:Wall[];bathroom:{x:number;z:number;width:number;depth:number};palette:{floor:string;wall:string;accent:string}};
 export const LAYOUT_VERSION=2;
 export function homeTier(type:string):HomeTier{return type==='basement'?'basement':['two-bedroom','roommates','family'].includes(type)?'two-bedroom':type==='apartment'?'apartment':'room'}
 const layouts=new Map<string,HomeLayout>();
@@ -44,4 +44,12 @@ export function cafeLayout():HomeLayout{
  {id:'table-a',kind:'table',x:-6,z:4.6,width:2.5,depth:1.7},{id:'table-b',kind:'table',x:2,z:4.6,width:2.5,depth:1.7},
  {id:'customer-chair',kind:'chair',x:-2,z:3,width:.9,depth:.9},{id:'customer-table',kind:'table',x:-2,z:4.6,width:2.5,depth:1.7},
  {id:'plant',kind:'plant',x:8,z:5,width:.8,depth:.8}];bathroom(l,false);layouts.set('cafe',l);return l;
+}
+export function bankLayout():HomeLayout{
+ const cached=layouts.get('bank');if(cached)return cached;const l=shell('bank',20,16);l.palette={floor:'#b9b4a4',wall:'#dde3df',accent:'#2f6d5b'};
+ l.objects=[{id:'teller',kind:'counter',x:-2,z:-5,width:9,depth:1.6,use:[-2,-2.9],label:'Speak to a teller',action:'bank'},
+ {id:'atm',kind:'register',x:6.4,z:-4.4,width:1.2,depth:1.2,use:[5.1,-4.4],label:'Use the ATM',action:'bank'},
+ {id:'seat-a',kind:'chair',x:-6,z:3.4,width:.9,depth:.9},{id:'seat-b',kind:'chair',x:-3.4,z:3.4,width:.9,depth:.9},
+ {id:'table-a',kind:'table',x:-4.7,z:4.9,width:2.6,depth:1.5},{id:'plant',kind:'plant',x:8,z:5,width:.8,depth:.8}];
+ bathroom(l,false);layouts.set('bank',l);return l;
 }

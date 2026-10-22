@@ -55,6 +55,19 @@ test('banking requires a bank account and being at the branch',()=>{
  assert.throws(()=>e.applyCommand(away,{type:'bank',id:'deposit',amount:1000},now,.5),/Walk to/);
 });
 
+test('walk-in bank interior: enter at the branch, bank from inside, then exit to the street',()=>{
+ let s=atBank();// positioned at the bank door with a bank account
+ s=act(s,{type:'enter_bank',id:'bank'});assert.equal(s.interior&&s.interior.kind,'bank');
+ // banking works from inside the lobby even though the interior position is not the city entrance
+ s=bank(s,'deposit',10000);assert.equal(s.life.bank.savings,10000);assert.equal(s.interior.kind,'bank');
+ s=bank(s,'gic_open',60000,'6');assert.equal(s.life.bank.gics.length,1);
+ // exit returns to the street at the bank
+ s=act(s,{type:'exit_home'});assert.equal(s.interior,undefined);assert.equal(s.location,'bank');
+ // entering from far away is rejected
+ let far=e.migrateState(e.newGame({name:'Y',path:'local'}));far.location='';
+ assert.throws(()=>e.applyCommand(far,{type:'enter_bank',id:'bank'},now,.5),/Walk to the bank door/);
+});
+
 test('legacy saves without a bank object are migrated to an empty bank',()=>{
  const legacy=e.migrateState(e.newGame({name:'Old',path:'local'}));delete legacy.life.bank;
  const migrated=e.migrateState(legacy);
