@@ -4,7 +4,7 @@ import {useFrame,useThree} from '@react-three/fiber';
 import * as THREE from 'three';
 import {cabinFittings,cabinSide,platformKit,subwayExterior,transitSeats,TTC_INTERIOR as C,type KitPart} from '@/lib/game/transit-kit';
 import {stopById,LINES} from '@/lib/game/transit';
-import {transitStop,type TransitState} from '@/lib/game/transit-interiors';
+import {transitStop,boardSign,type TransitState} from '@/lib/game/transit-interiors';
 import {npcAppearance} from '@/lib/game/characters';
 import Human from '../Human';
 import TTCBus from '../TTCBus';
@@ -35,7 +35,7 @@ export function VehicleCabin({t,minutes,cabinView,quality}:{t:TransitState;minut
  <group ref={right}><KitParts parts={rightParts}/>{[-5.5,5].map(z=><Door key={z} side={1} z={z} open={open}/>)}<Sign text="Priority seating" sub="Please offer this seat" position={[2.85,2.55,2.7]} rotation={[0,-Math.PI/2,0]} width={1.5} height={.45} background="#244e75"/></group>
  {t.mode==='subway'&&<Sign text={"LINE "+line.id} position={[0,3.1,-7.78]} width={1.2} height={.22} background={line.color} color="#152c24"/>}
  {[-1,1].map(side=><Sign key={side} text="" route={t} position={[side*2.8,3,0]} rotation={[0,-side*Math.PI/2,0]} width={5.8} height={.5}/>)}
- <Sign text={t.stage==='arrival'?'At '+stopById(t.legs[t.index].to)!.name:'Next stop: '+stopById(t.legs[t.index].to)!.name} sub={t.requested?'STOP REQUESTED':t.mode==='subway'?'Please stand clear of the doors':'Please hold the handrail'} position={[0,2.65,-7.8]} width={2.9} height={.65} color="#ffcf55"/>
+ <Sign text={(boardSign(t).label==='AT STOP'?'At ':'Next stop: ')+boardSign(t).name} sub={t.requested?'STOP REQUESTED':t.mode==='subway'?'Please stand clear of the doors':'Please hold the handrail'} position={[0,2.65,-7.8]} width={2.9} height={.65} color="#ffcf55"/>
  {t.mode!=='subway'&&<><KitParts parts={[{p:[1.8,1.25,6.6],s:[.42,.7,.24],c:'#3b9e64'},{p:[1.8,1.25,6.77],s:[.32,.55,.04],c:C.black},{p:[-1.5,1.5,8.2],s:[1.5,.25,.6],c:C.black}]}/><Sign text="TAP" sub="PRESTO" position={[1.8,1.3,6.8]} width={.26} height={.4} color="#8be4a1"/><Sign text="Stand behind" sub="the white line" position={[-1.6,2.75,7.8]} rotation={[0,Math.PI,0]} width={1.2} height={.6}/><group position={[-1.5,0,7.7]}><Human sheltered scale={1} appearance={npcAppearance(391)} action="sit" minutes={minutes}/></group></>}
  {t.mode!=='subway'&&<><KitParts parts={[{p:[1.8,1.3,-4.5],s:[.35,.5,.18],c:t.requested?'#edcb50':C.red}]}/><Sign text="STOP" position={[1.8,1.3,-4.39]} width={.29} height={.3}/></>}
  {transitSeats(t.mode).filter(s=>s.x===2&&s.z===-3).map(s=><group key="customer" position={[s.x,s.raised,s.z]} rotation={[0,s.rotation,0]}><Human sheltered scale={1} appearance={npcAppearance(241)} action="sit" minutes={minutes}/></group>)}
