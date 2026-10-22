@@ -94,6 +94,23 @@ test('item 5 — teller/advisor service needs a ticket; ATM and e-Transfer do no
  s=act(s,{type:'enter_bank',id:'bank'});assert.ok(!s.interior.ticket,'fresh visit has no ticket');
 });
 
+test('item 6 — phone app banks from anywhere; branch/ATM-only ops rejected on the phone',()=>{
+ let s=at();s.position=[900,900];s.location='';// nowhere near a branch
+ const phone=(id,amount,mode)=>e.applyCommand(s,{type:'bank',id,amount,mode,origin:'phone'},now,.5).state;
+ s=phone('deposit',10000);assert.equal(s.life.bank.savings,10000);// savings transfer works remotely
+ s=phone('etransfer',5000,'contact');// e-Transfer works remotely
+ s=phone('bill_pay',3000);assert.ok(s.life.bank.history.some(h=>/Bill payment/.test(h.text)));
+ assert.throws(()=>e.applyCommand(s,{type:'bank',id:'loan_take',amount:100000,origin:'phone'},now,.5),/app handles/);
+ assert.throws(()=>e.applyCommand(s,{type:'bank',id:'atm_withdraw',amount:1000,origin:'phone'},now,.5),/app handles/);
+});
+
+test('item 6 — a city ATM (origin atm) dispenses cash with a fee; non-cash ops rejected',()=>{
+ let s=at();s.position=[900,900];s.location='';const cash=s.cash;
+ s=e.applyCommand(s,{type:'bank',id:'atm_withdraw',amount:20000,mode:'other',origin:'atm'},now,.5).state;
+ assert.equal(s.wallet,20000);assert.equal(s.cash,cash-20000-E.bank.atmOtherFee);
+ assert.throws(()=>e.applyCommand(s,{type:'bank',id:'loan_take',amount:100000,origin:'atm'},now,.5),/only dispenses and accepts cash/);
+});
+
 test('legacy saves migrate to a complete bank with wallet and plan defaults',()=>{
  const legacy=e.migrateState(e.newGame({name:'Old',path:'local'}));delete legacy.life.bank;delete legacy.wallet;
  const m=e.migrateState(legacy);

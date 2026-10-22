@@ -49,6 +49,7 @@ export function interiorCommand(s:GameState,c:Command,now:number):string|null{
  if(c.type==='enter_bank'){if(i)throw new Error('Exit this interior first.');const p=placeById(c.id||'bank');if(!p||p.id!=='bank'||s.journey||distance(s.position,entrance(p))>3)throw new Error('Walk to the bank door first.');if(!isOpen(p,s.minutes))throw new Error('The bank is closed. Open weekdays, 9 am–5 pm.');delete s.life.restSeat;s.location=p.id;s.interior={kind:'bank',layoutVersion:LAYOUT_VERSION,place:p.id,tier:'room',position:bankLayout().door};return 'Welcome to your credit union. Walk to the teller or ATM, then open your banking.';}
  if(c.type==='enter_home'){if(i)return 'You are already inside.';enterHome(s);return 'Welcome home. Tap furniture to walk over and use it.';}
  if(!i){if(c.type.startsWith('interior_')||c.type==='exit_home')throw new Error('Enter your home first.');return null}
+ if(c.type==='bank'&&c.origin==='phone')return null;// phone banking works from anywhere, including indoors
  if(!isPublicInterior(i)&&i.place!==homePlace(s)){delete s.interior;return 'Your housing changed. You are back outside.';}
  if(c.type==='interior_arrive'){
   const m=i.movement;if(!m)throw new Error('There is no indoor walk to finish.');if(now<m.startedAt+m.seconds*1000)throw new Error('You are still walking to the object.');
