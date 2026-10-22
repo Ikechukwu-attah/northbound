@@ -11,7 +11,7 @@ import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES
 export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number;vehicleMode?:'bus'|'streetcar'|'subway';restSeat?:RestSeat;enterHome?:boolean;enterCafe?:boolean};
 
 export type GameState={version:4;transit?:TransitState;interior?:InteriorState;doorExitUntil?:number;social?:{householdId?:string;lastMeetDay?:string};community:CommunityState;life:LifeState;position:Point;visitedPlaces:string[];journey:Journey|null;transferUntil:number;fareMonth:string;paidFares:number;tripCount:number;bike:boolean;name:string;color:string;skin:string;district:DistrictId;location:string;cash:number;earned:number;minutes:number;needs:Record<Need,number>;job:string;shifts:number;skill:number;home:'room'|'apartment';visited:DistrictId[];friends:Record<string,number>;log:{text:string;day:number}[];rewards:string[]};
-export type Command={type:string;progress?:number;id?:string;name?:string;color?:string;skin?:string;point?:Point;mode?:string;path?:PathId;appearance?:Partial<Appearance>};
+export type Command={type:string;progress?:number;id?:string;origin?:string;name?:string;color?:string;skin?:string;point?:Point;mode?:string;path?:PathId;appearance?:Partial<Appearance>};
 export const COLORS=['#ce7551','#4f7f72','#6f86a4','#9b799c','#d7a44c'];
 export const SKINS=['#e3b88e','#b87e56','#764a35','#f1d3b5'];
 // Real OSM anchors determine simulated metres; the compressed mesh determines rendering.

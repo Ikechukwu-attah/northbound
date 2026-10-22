@@ -14,11 +14,20 @@ Review: approach home from the street, tap the facade door, watch the approach, 
 
 Browser visual acceptance remains pending: the managed browser reports `Error creating WebGL context`. Tests cover facade landing/paths at every home, delayed entry, cancellation, reload, exit and returning to the street. Production startup must also pass before publication.
 
+## Second item: TTC bus boarding
+
+- Pass the selected boarding stop to the authoritative command and validate proximity there; do not silently replace it with the nearest stop.
+- Align the surface boarding target with the front curb-side door. The parked bus has an open doorway on arrival, a sidewalk approach, and a visible “Board bus” target.
+- Preserve the bus cabin's red forward-facing seats, yellow rails, driver, PRESTO reader, request strip and moving city. Add the front windshield, steering wheel, instrument panel and driver screen. Door openings no longer contain a solid lower wall.
+- A passenger can step back off before departure (including when unable to pay), return to the sidewalk or board again. Existing fares and transfers survive this without a duplicate charge.
+- Keep the entire road edge outside the waiting area's walkable space. Old interior saves migrate away from newly blocked paths.
+
+Review: choose Kennedy → Scarborough Centre, walk to Kennedy, enter the bus stop, tap the front door, tap PRESTO, choose a seat or stand, request the stop and exit. Try Inside view for the windshield/cabin, reload during the ride, and try stepping off before tapping. Also review the station → bus transfer. Browser visual review remains pending because the managed browser cannot create a WebGL context.
+
 ## Remaining items, in the requested order
 
-1. TTC bus: review the available cabin and boarding flow, make it visibly accessible and ensure actual bus entry works. Train entry also needs user verification.
-2. Crossings: pedestrians/player wait for signals and passing vehicles before crossing.
-3. Street cars: research references online and replace box-like cars with recognizable passenger-car bodies and wheels, preserving mobile performance.
-4. House interior enclosure: replace the open dollhouse appearance shown in `image(3).png` with an enclosed interior view that keeps furniture and interactions visible. Screenshot was inspected from the supplied local attachment.
+1. Crossings: pedestrians/player wait for signals and passing vehicles before crossing.
+2. Street cars: research references online and replace box-like cars with recognizable passenger-car bodies and wheels, preserving mobile performance.
+3. House interior enclosure: replace the open dollhouse appearance shown in `image(3).png` with an enclosed interior view that keeps furniture and interactions visible. Screenshot was inspected from the supplied local attachment.
 
-Do not claim these four remaining items are implemented by the home-entrance change.
+These three items remain pending the sequential player review.
