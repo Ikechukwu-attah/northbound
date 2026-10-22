@@ -1,7 +1,8 @@
 import {peopleAt,personAt} from './schedules';
-import {BLOCK,BOUNDS,PLACES,PERSON_PLACES,placeById,distance,sidewalk,inBounds,pointAlong,pathLength,onSidewalk,type Point} from './world';
+import {BLOCK,BOUNDS,PLACES,PERSON_PLACES,placeById,distance,sidewalk,inBounds,pointAlong,pathLength,onSidewalk,homeApproachAt,type Point} from './world';
 import {makeRoadTiles,roadAt} from './roads';
 import {STOPS,LINES} from './transit';
+import {homeEntrance,restBayX} from './building-entrances';
 export const PERSON_RADIUS=.32, WALK_HALF_WIDTH=.725;
 // Only surface (bus/streetcar) stops have a street waiting shelter; subway stations are entrances.
 // world → navigation → transit → world is a shared runtime dependency cycle.
@@ -20,7 +21,8 @@ export function navSurface(p:Point,radius=PERSON_RADIUS):'sidewalk'|'crossing'|'
   const roadX=Math.round(p[0]/BLOCK)*BLOCK,roadZ=Math.round(p[1]/BLOCK)*BLOCK;
   return inside(oz)&&Math.abs(p[0]-roadX)<roadAt('z',roadX,p[1]).width/2||inside(ox)&&Math.abs(p[1]-roadZ)<roadAt('x',roadZ,p[0]).width/2?'crossing':'sidewalk';
  }
- const bx=Math.floor(p[0]/24)*24+12,bz=Math.floor(p[1]/24)*24;
+ const cx=Math.floor(p[0]/24),cz=Math.floor(p[1]/24),bx=restBayX(cx,PLACES.some(s=>s.kind==='home'&&Math.floor(s.x/24)===cx&&Math.floor(s.z/24)===cz)),bz=cz*24;
+ if(PLACES.some(s=>s.kind==='home'&&Math.abs(p[0]-s.x)<homeEntrance(s).width/2-radius&&p[1]>=s.z+2.7+radius&&p[1]<=s.z+7.7-radius))return 'plaza';
  if(Math.abs(p[0]-bx)<=1.1-radius&&p[1]>=bz+16.95+radius&&p[1]<=bz+19.35-radius)return 'plaza';
  return PLACES.some(s=>Math.abs(p[0]-s.x)<4.8-radius&&p[1]>=s.z+5.2+radius&&p[1]<=s.z+7.7-radius)?'plaza':null;
 }
@@ -29,7 +31,7 @@ export function staticObstacles(p:Point){const cx=Math.floor(p[0]/24),cz=Math.fl
  result=makeRoadTiles(cells).boxes.filter(b=>!b.seat&&b.p[1]-b.s[1]/2<2&&b.p[1]+b.s[1]/2>.35).map(b=>({x:b.p[0],z:b.p[2],halfX:b.s[0]/2,halfZ:b.s[2]/2}));
  // Destination buildings, cafe furniture, and station props use the same offsets as their renderer.
  for(const s of PLACES.filter(s=>Math.abs(s.x-p[0])<48&&Math.abs(s.z-p[1])<48)){
-  if(s.kind!=='park')result.push({x:s.x,z:s.z,halfX:s.kind==='landmark'?4.5:4.3,halfZ:4.4});
+  if(s.kind!=='park')result.push({x:s.x,z:s.z,halfX:s.kind==='landmark'?4.5:4.3,halfZ:s.kind==='home'?2.5:4.4});
   if(s.kind==='cafe')result.push({x:s.x+5.4,z:s.z+1,halfX:1.25,halfZ:1.25});
  }
  for(const s of STOPS.filter(s=>getShelterStops().has(s.id)&&distance(s.point,p)<48)){result.push({x:s.point[0]+1.5,z:s.point[1]-1.5,halfX:.1,halfZ:.1},{x:s.point[0]+3.1,z:s.point[1]-1.5,halfX:1.1,halfZ:.2});}
@@ -61,16 +63,19 @@ export function peopleSegmentClear(a:Point,b:Point,people:Point[],gap=.68){
 }
 /** Choose a clear parallel lane before reaching a person, rather than stopping nose-to-nose. */
 export function passingPoint(current:Point,path:Point[],fraction:number,people:Point[]):Point{
- const normal=lanePoint(path,fraction),p=pointAlong(path,fraction),len=pathLength(path)||1;
+ const normal=lanePoint(path,fraction),p=pointAlong(path,fraction);
  if(!people.some(q=>distance(q,current)<3))return normal;
- if(!onSidewalk(p))return normal;
- const ahead=pointAlong(path,Math.min(1,fraction+1.8/len)),behind=pointAlong(path,Math.max(0,fraction-.001));
+ if(!onSidewalk(p)&&!homeApproachAt(p))return normal;
+ const behind=pointAlong(path,Math.max(0,fraction-.001));
  const tangent=pointAlong(path,Math.min(1,fraction+.00001)),horizontal=Math.abs(tangent[0]-behind[0])>=Math.abs(tangent[1]-behind[1]),axis=horizontal?1:0;
  // Prefer the current side while passing, so two agents do not oscillate across each other.
  const retained:[number,number]=[p[0],p[1]];retained[axis]=current[axis];
  const candidates=[normal,retained,...[-.78,-.36,.36].map(offset=>{const q:Point=[...p];q[axis]+=offset;return q;})];
  const scored=candidates.filter(q=>segmentWalkable(current,q)&&peopleSegmentClear(current,q,people)).map(q=>{
-  const look:Point=[...ahead];look[axis]+=q[axis]-p[axis];
+  // Look along the current corridor, rather than cutting diagonally across a
+  // nearby turn. A chord around a corner can wrongly reject the clear lane.
+  const along=horizontal?0:1,sign=Math.sign(tangent[along]-behind[along])||1;
+  const look:Point=[...q];look[along]+=sign*1.8;
   const blocked=!peopleSegmentClear(q,look,people);
   return {q,score:(blocked?20:0)+(!segmentWalkable(q,look)?1:0)+Math.abs(q[axis]-current[axis])*.3+distance(q,normal)*.04};
  }).sort((a,b)=>a.score-b.score);

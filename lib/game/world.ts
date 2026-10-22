@@ -1,5 +1,6 @@
 import {COMMUNITY_PLACES} from './district-content';
 import {isWalkable} from './navigation';
+import {homeEntrance,onHomeApproach} from './building-entrances';
 import {DISTRICTS,type DistrictId,type Spot} from './data';
 export type Point=[number,number];
 export const BLOCK=24, METRES_PER_UNIT=40;
@@ -38,14 +39,22 @@ const services:WorldSpot[]=[
 export const WORLD_DISTRICTS=DISTRICTS.map(d=>({...d,spots:[...d.spots.map(s=>({...s,district:d.id,x:cells[s.id][0]*BLOCK+12,z:cells[s.id][1]*BLOCK+12})),...services.filter(p=>p.district===d.id),...COMMUNITY_PLACES.filter(p=>p.district===d.id)]}));
 export const PLACES:WorldSpot[]=WORLD_DISTRICTS.flatMap(d=>d.spots);
 export const placeById=(id:string)=>PLACES.find(p=>p.id===id);
-export const entrance=(p:Spot):Point=>[p.x,p.z+7];
+export const entrance=(p:Spot):Point=>p.kind==='home'?homeEntrance(p).landing:[p.x,p.z+7];
 export const distance=(a:Point,b:Point)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 export const sidewalk=(n:number)=>Math.round((n+5)/BLOCK)*BLOCK-5;
 export function inBounds(p:Point){return p.every(Number.isFinite)&&p[0]>=BOUNDS.west&&p[0]<=BOUNDS.east&&p[1]>=BOUNDS.north&&p[1]<=BOUNDS.south;}
 export function onSidewalk(p:Point){return inBounds(p)&&(Math.abs(p[0]-sidewalk(p[0]))<.05||Math.abs(p[1]-sidewalk(p[1]))<.05);}
+export const homeApproachAt=(p:Point)=>PLACES.find(s=>s.kind==='home'&&onHomeApproach(p,s));
+export const onFootpath=(p:Point)=>onSidewalk(p)||!!homeApproachAt(p);
 export function snapPoint(p:Point):Point{const x=Math.max(BOUNDS.west,Math.min(BOUNDS.east,p[0])),z=Math.max(BOUNDS.north,Math.min(BOUNDS.south,p[1]));return Math.abs(x-sidewalk(x))<Math.abs(z-sidewalk(z))?[sidewalk(x),z]:[x,sidewalk(z)];}
 /** Shortest rectilinear route on the connected sidewalk grid, including crossings. */
 export function walkingPath(from:Point,to:Point):Point[]{
+ const fromHome=!onSidewalk(from)?homeApproachAt(from):undefined,toHome=!onSidewalk(to)?homeApproachAt(to):undefined;
+ if(fromHome||toHome){
+  if(fromHome?.id===toHome?.id)return [from,to];
+  const start=fromHome?homeEntrance(fromHome).street:from,end=toHome?homeEntrance(toHome).street:to;
+  return [...(fromHome?[from]:[]),...walkingPath(start,end),...(toHome?[to]:[])].filter((p,i,a)=>!i||distance(p,a[i-1])>.001);
+ }
  if(!onSidewalk(from)||!onSidewalk(to))throw new Error('Choose a sidewalk or a marked place entrance.');
  const candidates:Point[][]=[];
  if(Math.abs(from[0]-to[0])<.01&&Math.abs(from[0]-sidewalk(from[0]))<.05)candidates.push([from,to]);

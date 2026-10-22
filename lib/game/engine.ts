@@ -1,11 +1,11 @@
 import {transitInteriorCommand,migrateTransitInterior,type TransitState} from './transit-interiors';
 import {interiorCommand,enterHome,migrateInterior,type InteriorState} from './interiors';
-import {nearestRestSeat,type RestSeat} from './seating';
+import {nearestRestSeat,seatInCell,type RestSeat} from './seating';
 import {initialCommunity,communityAction,type CommunityState} from './activities';
 import {initialLife,advanceLife,lifeAction,ECONOMY,PATHS,requireNeeds,type LifeState,type PathId} from './life';
 import {type Appearance} from './characters';
 import { PEOPLE,type DistrictId,type Need } from './data';
-import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,districtAt,nearbyPlace,snapPoint,nearestPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
+import {placeById,entrance,walkingPath,walkMinutes,pathLength,pointAlong,distance,onSidewalk,onFootpath,districtAt,nearbyPlace,snapPoint,nearestPlace,JOB_PLACES,PERSON_PLACES,type Point} from './world';
 import {placeGeo,stopGeo,haversineMetres} from './geo';
 import {FARE,STOPS,stopById,nearestStop,transitRoute,fareMonth,serviceOpen,LINES} from './transit';
 export type Journey={kind:'walk'|'bike'|'transit'|'fast';path:Point[];startedAt:number;seconds:number;minutes:number;label:string;detail:string;destination?:string;waitSeconds:number;vehicleMode?:'bus'|'streetcar'|'subway';restSeat?:RestSeat;enterHome?:boolean;enterCafe?:boolean};
@@ -34,7 +34,8 @@ export function migrateState(value:unknown):GameState{
  const old=structuredClone(value) as GameState;
  if((old.version as number)===1){const p=placeById(old.location)||placeById('queen')!;Object.assign(old,{version:2,position:entrance(p),district:p.district,location:p.id,visitedPlaces:Array.from(new Set([p.id,'home'])),journey:null,transferUntil:0,fareMonth:fareMonth(old.minutes),paidFares:0,tripCount:0,bike:old.visited.length>=3});}
  if(!old.life)old.life=initialLife(old,'legacy',undefined,true);
- if((old.version as number)<4){old.skill=PATHS.find(p=>p.id===old.life.path)?.skill||0;old.life.trainingHours=0;old.life.trainingStart=Math.floor(old.minutes/1440);old.position=snapPoint(old.position);if(old.journey){const j=old.journey,end=snapPoint(j.path[j.path.length-1]);if(j.kind==='walk'||j.kind==='bike')j.path=walkingPath(old.position,end);else{const stop=STOPS.find(p=>p.name===j.label);j.path[j.path.length-1]=stop?.point||end;}}old.district=districtAt(old.position);old.location=nearbyPlace(old.position)?.id||'';old.log.unshift({text:'Save updated: skill reset to your starting path; new sidewalk, needs and training rules now apply. Savings and story retained.',day:day(old)});}
+ if((old.version as number)<4){old.skill=PATHS.find(p=>p.id===old.life.path)?.skill||0;old.life.trainingHours=0;old.life.trainingStart=Math.floor(old.minutes/1440);old.position=onFootpath(old.position)?old.position:snapPoint(old.position);if(old.journey){const j=old.journey,end=snapPoint(j.path[j.path.length-1]);if(j.kind==='walk'||j.kind==='bike')j.path=walkingPath(old.position,end);else{const stop=STOPS.find(p=>p.name===j.label);j.path[j.path.length-1]=stop?.point||end;}}old.district=districtAt(old.position);old.location=nearbyPlace(old.position)?.id||'';old.log.unshift({text:'Save updated: skill reset to your starting path; new sidewalk, needs and training rules now apply. Savings and story retained.',day:day(old)});}
+ if(old.life.restSeat){const seat=old.life.restSeat;old.life.restSeat=seatInCell(Math.floor(seat.access[0]/24),Math.floor(seat.access[1]/24));}
  old.community??=initialCommunity();migrateInterior(old);migrateTransitInterior(old);old.version=4;return old;
 }
 export function isNear(s:GameState,id:string){const p=placeById(id);return !s.transit&&!s.journey&&!!p&&distance(s.position,entrance(p))<=3;}
@@ -64,12 +65,12 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
  case 'walk' :case 'visit':{
   const destination=c.id?placeById(c.id):undefined;const stop=c.id?stopById(c.id.replace('stop:','')):undefined;
   const target:Point|undefined=destination?entrance(destination):stop?.point||c.point;
-  if(!target||!Array.isArray(target)||target.length!==2||!onSidewalk(target))throw new Error('Choose a valid sidewalk, place or stop.');
+  if(!target||!Array.isArray(target)||target.length!==2||!onFootpath(target))throw new Error('Choose a valid sidewalk, place or stop.');
   const route=walkingPath(s.position,target),path=seated?[seated.point,seated.access,...route.slice(1)]:route,length=pathLength(path),bike=c.mode==='bike';
   if(bike&&(s.needs.energy<20||s.needs.bladder<15))throw new Error('Too exhausted or uncomfortable to cycle. Walk to a bathroom or a place to rest.');
   if(bike&&!s.bike)throw new Error('Explore three districts to unlock the community loan bike.');
   if(length<.1)throw new Error('You are already here.');
-  s.journey={kind:bike?'bike':'walk',path,startedAt:now,seconds:Math.max(.3,Math.min(90,length/(bike?12:s.needs.energy<20?3.5:7))),minutes:travelEstimate(s,target,destination?.id||(stop?'stop:'+stop.id:undefined),bike).minutes,label:destination?.name||stop?.name||'Selected sidewalk',detail:bike?'Cycling via connected streets':'Walking via sidewalks and crossings'+(s.needs.energy<20?' · exhausted, walking ~50% slower':''),destination:destination?.id,enterCafe:c.mode==='enter-cafe'&&destination?.kind==='cafe',waitSeconds:0};message=`${bike?'Cycling':'Walking'} to ${s.journey.label}.`;break;
+  s.journey={kind:bike?'bike':'walk',path,startedAt:now,seconds:Math.max(.3,Math.min(90,length/(bike?12:s.needs.energy<20?3.5:7))),minutes:travelEstimate(s,target,destination?.id||(stop?'stop:'+stop.id:undefined),bike).minutes,label:destination?.name||stop?.name||'Selected sidewalk',detail:bike?'Cycling via connected streets':'Walking via sidewalks and crossings'+(s.needs.energy<20?' · exhausted, walking ~50% slower':''),destination:destination?.id,enterHome:c.mode==='enter-home'&&destination?.id===(s.life.housing.place||'home'),enterCafe:c.mode==='enter-cafe'&&destination?.kind==='cafe',waitSeconds:0};message=`${bike?'Cycling':'Walking'} to ${s.journey.label}.`;break;
  }
  case 'transit':case 'fast':{
   const targetPlace=c.type==='fast'?placeById(c.id||''):undefined;
@@ -102,10 +103,10 @@ export function applyCommand(original:GameState,c:Command,now=Date.now(),roll=Ma
   if(c.type==='arrive'&&!finished)throw new Error('You are still on your way.');
   if(c.type==='cancel'&&!finished&&j.kind!=='walk'&&j.kind!=='bike')throw new Error('Stay aboard until your selected stop.');
   const cancelled=c.type==='cancel'&&(j.kind==='walk'||j.kind==='bike');const fraction=cancelled&&typeof c.progress==='number'&&Number.isFinite(c.progress)?Math.max(0,Math.min(journeyFraction(j,now),c.progress)):finished?1:journeyFraction(j,now),p=pointAlong(j.path,fraction);
-  advance(s,fraction>=1?j.minutes:Math.max(0,Math.ceil(j.minutes*fraction)));s.journey=null;settlePosition(s,onSidewalk(p)?p:snapPoint(p));
+  advance(s,fraction>=1?j.minutes:Math.max(0,Math.ceil(j.minutes*fraction)));s.journey=null;settlePosition(s,onFootpath(p)?p:snapPoint(p));
   if(j.restSeat&&fraction>=1&&c.type==='arrive'){settlePosition(s,j.restSeat.access);s.life.restSeat=j.restSeat;advance(s,60);boost(s,{energy:30,fun:10});s.life.animation='sit';s.life.animationUntil=0;message='An hour of seated rest restores your energy. The sidewalk is clear for others.';break;}
   if(j.restSeat&&fraction>=1)settlePosition(s,j.restSeat.access);
-  if(c.type==='arrive'&&fraction>=1&&(j.destination===(s.life.housing.place||'home')||now>(s.doorExitUntil||0)&&distance(s.position,entrance(placeById(s.life.housing.place||'home')!))<.65)){enterHome(s);message='Welcome home. Tap the furniture to use it.';break;}
+  if(c.type==='arrive'&&fraction>=1&&j.enterHome&&j.destination===(s.life.housing.place||'home')){enterHome(s);message='Welcome home. Tap the furniture to use it.';break;}
   if(c.type==='arrive'&&fraction>=1&&j.enterCafe){try{message=interiorCommand(s,{type:'enter_cafe',id:j.destination},now)!;}catch(e){message=e instanceof Error?e.message:'Café is closed.';}break;}
   message=fraction>=1?`Arrived at ${j.label}. ${j.minutes} game minutes travelled.`:'Walk paused. Your position and elapsed travel time are saved.';break;
  }
