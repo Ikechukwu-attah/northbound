@@ -7,7 +7,7 @@ export type BusPart={shape:'box'|'wheel';p:[number,number,number];s:[number,numb
 export type BusDecal={p:[number,number,number];size:[number,number];angle:number;tile:'destination'|'badge'|'fleet'|'accessible'};
 export const BUS_LENGTH=5.4;
 const white='#f4f3ec',red='#da291c',glass='#233740',rubber='#22292b',metal='#aeb6b7';
-export function ttcBusParts():BusPart[]{const out:BusPart[]=[];const box=(tag:string,p:BusPart['p'],s:BusPart['s'],c:string)=>out.push({shape:'box',tag,p,s,c});
+export function ttcBusParts(frontDoorOpen=false):BusPart[]{const out:BusPart[]=[];const box=(tag:string,p:BusPart['p'],s:BusPart['s'],c:string)=>out.push({shape:'box',tag,p,s,c});
  box('body',[0,.83,0],[1.18,1.14,5.02],white);
  box('window-band',[0,1.08,0],[1.192,.57,4.82],rubber);
  box('red-belt',[0,.65,0],[1.198,.19,5.04],red);
@@ -38,6 +38,19 @@ export function ttcBusParts():BusPart[]{const out:BusPart[]=[];const box=(tag:st
  // Folded rack stays inside the length used by queues and crossings.
  for(const x of [-.32,.32])box('bike-rack-upright',[x,.50,2.66],[.025,.42,.025],metal);
  for(const y of [.32,.46,.69])box('bike-rack-rail',[0,y,2.66],[.83,.024,.025],metal);
+ if(frontDoorOpen){
+  // Remove the solid shells behind the entry, then rebuild each with a real opening.
+  for(const tag of ['body','window-band','red-belt']){
+   const index=out.findIndex(p=>p.tag===tag),part=out.splice(index,1)[0];
+   const [width,height,depth]=part.s,lo=1.82,hi=2.44;
+   box(tag+'-far-side',[width/2-.1,part.p[1],0],[.2,height,depth],part.c);
+   for(const [a,b]of [[-depth/2,lo],[hi,depth/2]])if(b>a)box(tag+'-shell',[0,part.p[1],(a+b)/2],[width,height,b-a],part.c);
+  }
+  for(let n=out.length-1;n>=0;n--)if(['curb-door','door-glass','door-panel','door-centre'].includes(out[n].tag)&&out[n].p[2]>1.8)out.splice(n,1);
+  box('entry-floor',[-.32,.295,2.13],[.65,.04,.59],'#555b5c');
+  box('entry-back',[.28,.83,2.13],[.03,1.08,.59],'#333e3f');
+  for(const z of [1.83,2.43]){box('folded-door',[-.55,.84,z],[.14,1.10,.045],rubber);box('entry-rail',[-.48,.9,z],[.035,1.03,.035],'#e7c24f');}
+ }
  return out;
 }
 export const BUS_DECALS:BusDecal[]=[

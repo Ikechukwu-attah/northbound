@@ -30,3 +30,36 @@ test('every transit object can be reached around seats and platform barriers; ga
 test('popup placements avoid the actor on desktop and 390px, even near safe edges',()=>{for(const width of [390,1440])for(const x of [30,width/2,width-30])for(const y of [190,350,510]){const safe={x:8,y:150,width:width-16,height:450},player={x:x-25,y:y-40,width:50,height:90},box=p.popupPlacement({x,y},width===390?230:250,120,safe,player);assert.ok(box);assert.equal(p.overlaps(box,player),false);assert.ok(box.x>=8&&box.x+box.width<=width-8);assert.ok(box.y>=150&&box.y+box.height<=600)}});
 test('cafe status follows order, payment, seating, eating and finished seating',()=>{const c={kind:'cafe',position:[0,0],tier:'room',place:'queen'};assert.match(i.cafeStatus(c),/Order at/);c.order={item:'meal',paid:false};assert.match(i.cafeStatus(c),/Pay/);c.order.paid=true;assert.match(i.cafeStatus(c),/Choose a seat/);c.seat='seat-a';assert.match(i.cafeStatus(c),/Ready to eat/);delete c.order;c.pose={object:'seat-a',action:'eat',until:2000};assert.match(i.cafeStatus(c,1000),/Enjoying/);assert.match(i.cafeStatus(c,3000),/Relaxing/)});
 test('CN tower base and adjacent dome stay inside their block clear of sidewalk paths',()=>{const c=w.placeById('cn');for(let a=0;a<Math.PI*2;a+=.02){const tower=[c.x+Math.cos(a)*3,c.z+Math.sin(a)*3],dome=[c.x-5+Math.cos(a)*5.2,c.z-.5+Math.sin(a)*5.2*.75];for(const point of [tower,dome]){assert.ok(Math.abs(point[0]-w.sidewalk(point[0]))>.8);assert.ok(Math.abs(point[1]-w.sidewalk(point[1]))>.8)}}});
+test('selected bus origin is retained, validated and never silently replaced',()=>{
+ let s=e.newGame({name:'Bus rider'});s.position=ttc.stopById('kennedy').point;
+ let r=act(s,'transit','stc',{mode:'playable',origin:'kennedy'});assert.equal(r.transit.origin,'kennedy');assert.equal(r.transit.mode,'bus');
+ assert.throws(()=>act(s,'transit','stc',{mode:'playable',origin:'nyc'}),/Walk to/);
+ assert.throws(()=>act(s,'transit','stc',{mode:'playable',origin:'missing'}),/boarding stop/);
+});
+test('every bus connector boards through a sidewalk approach and completes the physical ride',()=>{
+ for(const line of ttc.LINES.filter(l=>l.mode==='bus')){
+  const from=line.stops[0],to=line.stops[1];let s=start(from,to);assert.equal(s.transit.mode,'bus');
+  const tr=s.transit,layout=t.transitLayout(tr),door=t.transitObjects(tr).find(o=>o.id==='board');
+  const path=i.interiorPath(tr.position,door.use,layout);assert.ok(path.every(p=>p[0]<4.25));
+  for(const x of [4.5,5.5])assert.throws(()=>i.interiorPath(tr.position,[x,0],layout),/floor|route/);
+  const before=s.cash;s=finish(s);assert.equal(s.transit,undefined);assert.deepEqual(s.position,ttc.stopById(to).point);assert.equal(s.cash,before-330);
+ }
+});
+test('a rider can step off the parked bus, including after a refused fare, then reboard without double charging',()=>{
+ let s=start('kennedy','stc');s.cash=0;now=s.transit.readyAt+1;s=use(s,'board');s=use(s,'reader');assert.equal(s.transit.validated,false);s=use(s,'door');assert.equal(s.transit.stage,'platform');s=use(s,'street');assert.equal(s.transit,undefined);
+ s=start('kennedy','stc');let cash=s.cash;now=s.transit.readyAt+1;s=use(s,'board');s=use(s,'reader');assert.equal(s.cash,cash-330);s=use(s,'door');s=use(s,'board');s=use(s,'reader');assert.equal(s.cash,cash-330);s=use(s,'stand');assert.equal(s.transit.stage,'riding');s=finish(s);assert.equal(s.cash,cash-330);
+});
+test('bus entry waits for the approach to finish and saved approaches resume at the front door',()=>{
+ let s=start('kennedy','stc');now=s.transit.readyAt+1;s=act(s,'transit_use','board');assert.equal(s.transit.stage,'platform');assert.ok(s.transit.movement);assert.throws(()=>act(s,'transit_arrive'),/Still walking/);
+ s=e.migrateState(JSON.parse(JSON.stringify(s)));now=s.transit.movement.startedAt+s.transit.movement.seconds*1000+1;s=act(s,'transit_arrive');assert.equal(s.transit.stage,'boarding');assert.equal(s.transit.validated,false);assert.equal(s.name,'Transit tester');
+});
+test('older surface saves in the roadway migrate onto the sidewalk without changing fare or destination',()=>{
+ let s=start('kennedy','stc');s.transit.layoutVersion=2;s.transit.position=[5.5,0];s.transit.movement={path:[[5.5,0],[5.5,4]],seconds:4,startedAt:now};s.transit.paid=true;s=e.migrateState(JSON.parse(JSON.stringify(s)));assert.ok(i.insideWalkable(s.transit.position,t.transitLayout(s.transit)));assert.ok(s.transit.position[0]<4.25);assert.equal(s.transit.movement,undefined);assert.equal(s.transit.paid,true);assert.equal(s.transit.destination,'stc');
+});
+test('overlapping stop approach radii use the chosen stop even when another is nearer',()=>{
+ let s=e.newGame({name:'Selected stop'});const chosen=ttc.stopById('queenyonge');s.position=[chosen.point[0]+2.5,chosen.point[1]];assert.equal(ttc.nearestStop(s.position).id,'queen');
+ s=act(s,'transit','queen',{origin:'queenyonge',mode:'playable'});assert.equal(s.transit.origin,'queenyonge');assert.equal(s.transit.mode,'streetcar');
+});
+test('overnight replacement uses a bus stop, PRESTO reader, seat and requested exit',()=>{
+ let s=e.newGame({name:'Night rider'});s.minutes=180;s.position=ttc.stopById('nyc').point;s=act(s,'transit','sheppard',{origin:'nyc',mode:'playable'});assert.equal(s.transit.mode,'bus');assert.equal(s.transit.stage,'platform');const minutes=s.minutes;s=finish(s);assert.equal(s.transit,undefined);assert.ok(s.minutes>=minutes+20);assert.deepEqual(s.position,ttc.stopById('sheppard').point);
+});

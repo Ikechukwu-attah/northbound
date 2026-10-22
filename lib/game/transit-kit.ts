@@ -1,4 +1,9 @@
 /** Dimensions shared by the TTC furnishings and the walkable interior. Original low-poly geometry. */
+export function surfaceBoarding(kind:'bus'|'streetcar'){
+ const scale=kind==='bus'?2:1.5,center:[number,number]=[5.5,-2];
+ const z=kind==='bus'?2.13:2.9;
+ return {scale,center,door:[center[0]-.646*scale,center[1]+z*scale] as [number,number],landing:[3.5,center[1]+z*scale] as [number,number]};
+}
 export type VehicleKind='subway'|'bus'|'streetcar';
 export type KitPart={p:[number,number,number];s:[number,number,number];c:string;r?:[number,number,number];shape?:'box'|'tube';finish?:'metal'|'light'|'matte'};
 export const TTC_INTERIOR={red:'#bb2633',silver:'#bfc6c8',panel:'#dfded6',black:'#242b2e',floor:'#535b5e',yellow:'#f2ca36',grip:'#b72a32'};
@@ -36,7 +41,10 @@ export function cabinFittings(kind:VehicleKind):KitPart[]{
 }
 export function cabinSide(kind:VehicleKind,side:number):KitPart[]{
  const c=TTC_INTERIOR,p:KitPart[]=[];const box=(y:number,z:number,height:number,depth:number,color:string,thick=.15)=>p.push({p:[side*3,y,z],s:[thick,height,depth],c:color,finish:color===c.silver?'metal':'matte'});
- box(.4,0,.8,18,c.panel);box(3.08,0,.52,18,c.panel);box(.08,0,.16,18,c.black);
+ const doorSide=kind==='subway'||side===1;
+ const spans=doorSide?[[-9,-6.4],[-4.6,4.1],[5.9,9]]:[[-9,9]];
+ for(const [lo,hi]of spans){box(.4,(lo+hi)/2,.8,hi-lo,c.panel);box(.08,(lo+hi)/2,.16,hi-lo,c.black);}
+ box(3.08,0,.52,18,c.panel);
  const frames=kind==='bus'?[-8.9,-6.8,-3.8,-.8,2.2,4,6,8.9]:[-8.9,-6.4,-4.6,-1.6,1.6,4.1,5.9,8.9];
  for(const z of frames)box(1.9,z,2.2,.16,kind==='bus'?c.black:c.silver,.2);
  for(const z of [-7.65,-3.1,0,2.85,7.4]){box(2.68,z,.1,2.1,c.black,.2);box(.98,z,.1,2.1,c.black,.2);}

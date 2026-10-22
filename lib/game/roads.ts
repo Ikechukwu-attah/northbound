@@ -1,3 +1,4 @@
+import {restBayX} from './building-entrances';
 import {BLOCK,PLACES,districtAt,type Point} from './world';
 import {districtArterials} from './geo';
 export type Axis='x'|'z';
@@ -78,11 +79,12 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
   else if(parking){for(let a=8;a<18;a+=2.4){box(x+a,.095,z+9,.08,.025,3.3,'#f1e5cb');box(x+a,.095,z+16,.08,.025,3.3,'#f1e5cb');}box(x+12,.095,z+7.4,11,.025,.08,'#f1e5cb');box(x+12,.095,z+17.6,11,.025,.08,'#f1e5cb');for(const a of [9,14]){box(x+a,.5,z+9,1.2,.65,2.4,a===9?'#a25543':'#c3c8bd');box(x+a,.95,z+9,1.05,.45,1.3,'#365660');}if(!dense){const pc=wall(3);box(x+12,1.7,z+11.8,12,3.1,3.4,pc);box(x+12,3.35,z+11.8,12.3,.4,3.7,'#d8cdb6');for(let a=-4.5;a<5;a+=2.2)box(x+12+a,1.5,z+13.4,1.6,1.4,.06,win(a,true));box(x+5.5,3.6,z+17.6,.4,3,.4,'#8a8f8c');box(x+5.5,5,z+17.6,2.1,1,.12,['#c2584a','#466a8a','#2f6d55'][seed%3]);}tree(x+18,z+12,seed);}
   else if(dense){if(district==='toronto'){seed%4===0?tower(x+12,z+12,seed):seed%4===1?stone(x+12,z+12,seed):shopRow(x+12,z+12,seed);box(x+12,.105,z+16.5,12,.05,1.6,'#4a4f4d');}else{seed%3===0?slab(x+12,z+12,seed):tower(x+12,z+12,seed);}}
   else {if(seed%6===0)slab(x+12,z+12,seed);else{for(const [hx,hz]of [[8.5,8.5],[15.5,8.5],[8.5,14.2],[15.5,14.2]] as const)house(x+hx,z+hz,seed+hx+hz);for(const dx of [8.5,15.5])box(x+dx,.1,z+12,1.6,.06,5,'#ccbfa6');}}
+  const benchX=restBayX(cx,PLACES.some(p=>p.kind==='home'&&Math.floor(p.x/24)===cx&&Math.floor(p.z/24)===cz));
   // Recessed rest bay: the seat and its occupant leave both through lanes open.
-  box(x+12,.13,z+18.15,2.2,.22,2.4,'#dbd7c8');
-  box(x+12,.85,z+17.8,1.7,.16,.65,'#a17b51');out.boxes[out.boxes.length-1].seat=true;
-  box(x+12,1.26,z+17.4,1.7,.65,.12,'#b58e61');
-  for(const leg of [-.62,.62]){box(x+12+leg,.46,z+17.8,.12,.75,.45,'#485650');out.boxes[out.boxes.length-1].seat=true;}
+  box(benchX,.13,z+18.15,2.2,.22,2.4,'#dbd7c8');
+  box(benchX,.85,z+17.8,1.7,.16,.65,'#a17b51');out.boxes[out.boxes.length-1].seat=true;
+  box(benchX,1.26,z+17.4,1.7,.65,.12,'#b58e61');
+  for(const leg of [-.62,.62]){box(benchX+leg,.46,z+17.8,.12,.75,.45,'#485650');out.boxes[out.boxes.length-1].seat=true;}
   for(const axis of ['x','z'] as Axis[]){const road=roadAt(axis,axis==='x'?z:x,axis==='x'?x:z);const put=(along:number,across:number,y:number,length:number,width:number,height:number,c:string)=>axis==='x'?box(x+along,y,z+across,length,height,width,c):box(x+across,y,z+along,width,height,length,c);
    // Clip N-S streets at the shore so they stop at the waterfront road / lookout, not in the lake.
    const shoreNS=cz===-1&&axis==='z',shoreEnd=district==='scarborough'?-3.2:-1.6,rLen=shoreNS?shoreEnd+24:24,rMid=shoreNS?(shoreEnd+24)/2:12;

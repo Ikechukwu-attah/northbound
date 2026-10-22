@@ -27,7 +27,7 @@ export function interiorPath(from:Point,to:Point,l:HomeLayout):Point[]{
  const simplified:Point[]=[from];let i=0;while(i<path.length-1){let next=i+1;while(next+1<path.length&&interiorSegment(path[i],path[next+1],l))next++;simplified.push(path[next]);i=next}return simplified;
 }
 export function interiorPosition(i:InteriorState,now=Date.now()):Point{return i.movement?pointAlong(i.movement.path,Math.min(1,Math.max(0,(now-i.movement.startedAt)/(i.movement.seconds*1000)))):i.position}
-export function enterHome(s:GameState){if(s.journey||distance(s.position,entrance(placeById(homePlace(s))!))>3)throw new Error('Walk to your home door first.');delete s.life.restSeat;s.interior={kind:'home',layoutVersion:LAYOUT_VERSION,place:homePlace(s),tier:homeTier(s.life.housing.type),position:homeLayout(homeTier(s.life.housing.type)).door};}
+export function enterHome(s:GameState){if(s.journey||distance(s.position,entrance(placeById(homePlace(s))!))>.65)throw new Error('Walk to your home door first.');delete s.life.restSeat;s.interior={kind:'home',layoutVersion:LAYOUT_VERSION,place:homePlace(s),tier:homeTier(s.life.housing.type),position:homeLayout(homeTier(s.life.housing.type)).door};}
 export function assertHomeObject(s:GameState,action:string){
  if(!s.interior||s.interior.kind==='cafe'||s.interior.place!==homePlace(s))throw new Error('Enter your home and use its furniture first.');
  if(s.interior.movement)throw new Error('Finish walking to the furniture first.');

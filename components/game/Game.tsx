@@ -8,7 +8,7 @@ import {ChunkBoundary} from './ChunkBoundary';
 import {ArrowUpRight,ArrowRight,MapPin,Compass,Sun,Cloud,Wallet,Check,ChevronRight,X,Bus,BriefcaseBusiness,House,Users,BookOpen,Coffee,Trees,ShoppingBag,Flag,Heart,Zap,Utensils,Droplets,Bath,Smile,Settings2,RotateCcw,Eye,EyeOff,HelpCircle,LoaderCircle,CloudCheck,Volume2,VolumeX,Navigation,Maximize,Minimize,Lock,Star,CheckCircle2,ChevronDown,MoveUpRight,Map,BedDouble,Armchair,ChefHat,ShowerHead,Leaf,Ticket,NotebookPen,PanelRightClose,PanelRightOpen} from 'lucide-react';
 import {JOBS,PEOPLE,NEED_LABELS,districtById,money,type Spot,type Need,type DistrictId} from '@/lib/game/data';
 import {COLORS,SKINS,day,isNear,travelEstimate,journeyPosition,type GameState,type Command} from '@/lib/game/engine';
-import {WORLD_DISTRICTS as DISTRICTS,PLACES,placeById,entrance,walkingPath,walkMinutes,districtAt,nearestPlace,JOB_PLACES,PERSON_PLACES,type Point} from '@/lib/game/world';
+import {WORLD_DISTRICTS as DISTRICTS,PLACES,placeById,entrance,walkingPath,walkMinutes,districtAt,nearestPlace,JOB_PLACES,PERSON_PLACES,distance,type Point} from '@/lib/game/world';
 import {gameDate} from '@/lib/game/transit';
 import {panelToggle} from '@/lib/game/ui';
 import {Explore,CityMap} from './Explore';
@@ -71,7 +71,7 @@ export default function Game(){
  useEffect(()=>{if(!game?.interior?.pose)return;const delay=game.interior.pose.until-Date.now();if(delay<0||delay>30000)return;const timer=setTimeout(()=>setJourneyTick(v=>v+1),delay+50);return()=>clearTimeout(timer)},[game?.interior?.pose]);
  useEffect(()=>{if(!sound||!transit||!['riding','arrival'].includes(transit.stage)||!('speechSynthesis' in window))return;const utterance=new SpeechSynthesisUtterance(transit.stage==='arrival'?'Arriving at '+stopById(transit.legs[transit.index].to)!.name: 'Next stop: '+stopById(transit.legs[transit.index].to)!.name);utterance.lang='en-CA';window.speechSynthesis.speak(utterance);return()=>window.speechSynthesis.cancel()},[sound,transit?.index,transit?.stage]);
  const enterCafe=(id:string)=>{if(!game)return;void send(isNear(game,id)?{type:'enter_cafe',id}:{type:'walk',id,mode:'enter-cafe'});};
- const enterDoor=()=>{if(!game)return;if(isNear(game,homePlace(game)))void send({type:'enter_home'});else void send({type:'walk',id:homePlace(game)});};
+ const enterDoor=()=>{if(!game)return;if(!game.journey&&distance(game.position,entrance(placeById(homePlace(game))!))<=.65)void send({type:'enter_home'});else void send({type:'walk',id:homePlace(game),mode:'enter-home'});};
  const enterBank=()=>{if(!game)return;void send(isNear(game,'bank')?{type:'enter_bank'}:{type:'walk',id:'bank',mode:'enter-bank'});};
  const openBank=useCallback(()=>setPanel('bankpanel'),[]);
  const toggleHud=(target:'place'|'status',open:boolean)=>{const next=panelToggle(target,open,mobile,{place:!placeCollapsed,status:!compact});setPlaceCollapsed(!next.place);setCompact(!next.status);};
