@@ -5,7 +5,7 @@ import {isOpen} from './calendar';
 import ECONOMY from '../../config/economy.json';
 import {homeLayout,cafeLayout,bankLayout,homeTier,LAYOUT_VERSION,type HomeTier,type HomeLayout} from './interior-layouts';
 export * from './interior-layouts';
-export type InteriorState={kind?:'home'|'cafe'|'bank';layoutVersion?:number;place:string;tier:HomeTier;position:Point;order?:{item:string;paid:boolean};seat?:string;queue?:number;movement?:{path:Point[];startedAt:number;seconds:number;object?:string;mode?:string};pose?:{object:string;action:string;until:number}};
+export type InteriorState={kind?:'home'|'cafe'|'bank';layoutVersion?:number;place:string;tier:HomeTier;position:Point;order?:{item:string;paid:boolean};seat?:string;queue?:number;ticket?:{n:number;serving:number;called:boolean};movement?:{path:Point[];startedAt:number;seconds:number;object?:string;mode?:string};pose?:{object:string;action:string;until:number}};
 export const interiorLayout=(i:InteriorState)=>i.kind==='cafe'?cafeLayout():i.kind==='bank'?bankLayout():homeLayout(i.tier);
 export const isPublicInterior=(i?:InteriorState)=>i?.kind==='cafe'||i?.kind==='bank';
 export const CAFE_MENU=[{id:'meal',name:'Breakfast sandwich & coffee',price:ECONOMY.prices.cafeMeal,hunger:55,energy:8},{id:'toast',name:'Toast & tea',price:Math.round(ECONOMY.prices.cafeMeal*.65),hunger:35,energy:5},{id:'coffee',name:'House coffee',price:Math.round(ECONOMY.prices.cafeMeal*.3),hunger:5,energy:12}];
@@ -72,7 +72,10 @@ export function interiorCommand(s:GameState,c:Command,now:number):string|null{
  return null;
 }
 
-function bankObject(s:GameState,id:string,now:number){const i=s.interior!,p=placeById(i.place)!;if(!isOpen(p,s.minutes))throw new Error('The counter is closed. You can still exit to the street.');i.pose={object:id,action:id==='atm'?'coffee':'talk',until:now+8000};return id==='atm'?'At the ATM. Open your banking to deposit, withdraw or manage your accounts.':'At the teller. Open your banking to manage savings, GICs, loans and your line of credit.';}
+function bankObject(s:GameState,id:string,now:number){const i=s.interior!,p=placeById(i.place)!;if(!isOpen(p,s.minutes))throw new Error('The branch is closed. You can still exit to the street.');
+ if(id==='ticket'){if(i.ticket?.called)return 'You hold ticket #'+i.ticket.n+' — now serving #'+i.ticket.serving+'. See a teller or advisor.';const hour=s.minutes%1440/60,wait=hour>=11&&hour<14?8:hour>=16&&hour<18?6:3,n=(Math.floor(s.minutes/3)%60)+12;advanceLife(s,wait);i.ticket={n,serving:n,called:true};i.pose={object:id,action:'talk',until:now+5000};return 'Ticket #'+n+'. You waited about '+wait+' minutes; now serving #'+n+'. See a teller or advisor.';}
+ if(id==='teller'||id==='advisor'){if(!i.ticket?.called)throw new Error('Take a number at the ticket machine and wait to be called.');i.pose={object:id,action:'talk',until:now+8000};return id==='advisor'?'With an advisor. Open your banking to arrange a loan, line of credit or GIC.':'At the teller. Open your banking to deposit, move money or manage your accounts.';}
+ i.pose={object:id,action:id==='atm'?'coffee':'talk',until:now+8000};return 'At the ATM. Open your banking to withdraw or deposit cash — no number needed.';}
 function cafeObject(s:GameState,id:string,mode:string|undefined,now:number){
  const i=s.interior!,o=cafeLayout().objects.find(o=>o.id===id)!;if(i.movement||!o.use||distance(i.position,o.use)>.65)throw new Error('Walk to the café object first.');
  if(id==='toilet'){advanceLife(s,5);s.needs.bladder=100;i.pose={object:id,action:'bathroom',until:now+8000};return 'Bathroom break complete.';}
@@ -100,7 +103,7 @@ function cafeObject(s:GameState,id:string,mode:string|undefined,now:number){
 export function sameInterior(a:GameState,b:GameState){if(!a.interior||!b.interior)return !a.interior&&!b.interior;if(a.interior.place!==b.interior.place||(a.interior.kind||'home')!==(b.interior.kind||'home'))return false;return a.interior.kind==='cafe'||!!a.social?.householdId&&a.social.householdId===b.social?.householdId;}
 
 /** Staff and queued customers reserve clear floor footprints as well as visible bodies. */
-export function interiorNavigation(i:InteriorState,minutes:number):HomeLayout{const l=interiorLayout(i),hour=minutes%1440/60;let people:Point[]=[];if(i.kind==='cafe'&&(hour>=7&&hour<20||!!i.order))people=[[-3,-6.65],[3.4,-6.65],...Array.from({length:i.queue||0},(_,n)=>[-7.7,-2.5+n*1.4] as Point)];else if(i.kind==='bank')people=[[-2,-6.4]];else if(i.kind!=='cafe'&&i.tier==='room'&&hour>=7&&hour<23)people=[[2.8,-6]];return {...l,walls:[...l.walls,...people.map(([x,z])=>({x,z,width:.7,depth:.7}))]};}
+export function interiorNavigation(i:InteriorState,minutes:number):HomeLayout{const l=interiorLayout(i),hour=minutes%1440/60;let people:Point[]=[];if(i.kind==='cafe'&&(hour>=7&&hour<20||!!i.order))people=[[-3,-6.65],[3.4,-6.65],...Array.from({length:i.queue||0},(_,n)=>[-7.7,-2.5+n*1.4] as Point)];else if(i.kind==='bank')people=[[-2,-6.4],[7.3,2]];else if(i.kind!=='cafe'&&i.tier==='room'&&hour>=7&&hour<23)people=[[2.8,-6]];return {...l,walls:[...l.walls,...people.map(([x,z])=>({x,z,width:.7,depth:.7}))]};}
 
 export function cafeStatus(i:InteriorState,now=Date.now()){
  if(i.movement)return 'Walking to '+(i.movement.object==='register'?'the till':i.movement.object||'your spot')+'…';

@@ -7,6 +7,8 @@ const at=(path='local')=>{let s=e.migrateState(e.newGame({name:'Banker',path}));
 const act=(s,cmd)=>e.applyCommand(s,cmd,now,.5).state;
 const bank=(s,id,amount,mode)=>act(s,{type:'bank',id,amount,mode});
 const refill=s=>{for(const k of Object.keys(s.needs))s.needs[k]=90;return s;};
+const useInterior=(s,id)=>{s=act(s,{type:'interior_use',id});const m=s.interior&&s.interior.movement;if(m){const saved=now;now=m.startedAt+m.seconds*1000+1;s=act(s,{type:'interior_arrive'});now=saved;}return s;};
+const exitInterior=s=>{s=act(s,{type:'exit_home'});const m=s.interior&&s.interior.movement;if(m){const saved=now;now=m.startedAt+m.seconds*1000+1;s=act(s,{type:'interior_arrive'});now=saved;}return s;};
 
 test('deposit/withdraw move money between chequing and savings',()=>{
  let s=at();const cash=s.cash;
@@ -73,10 +75,23 @@ test('item 3 — loan has a monthly minimum payment; a miss adds a fee, drops cr
 
 test('walk-in bank interior: enter, bank from inside, exit; far entry rejected',()=>{
  let s=refill(at());s=act(s,{type:'enter_bank',id:'bank'});assert.equal(s.interior&&s.interior.kind,'bank');
+ s=useInterior(s,'ticket');// take a number for teller service
  s=bank(s,'deposit',10000);assert.equal(s.life.bank.savings,10000);
- s=act(s,{type:'exit_home'});assert.equal(s.interior,undefined);assert.equal(s.location,'bank');
+ s=exitInterior(s);assert.equal(s.interior,undefined);assert.equal(s.location,'bank');
  let far=e.migrateState(e.newGame({name:'Y',path:'local'}));far.location='';
  assert.throws(()=>e.applyCommand(far,{type:'enter_bank',id:'bank'},now,.5),/Walk to the bank door/);
+});
+
+test('item 5 — teller/advisor service needs a ticket; ATM and e-Transfer do not',()=>{
+ let s=refill(at());s=act(s,{type:'enter_bank',id:'bank'});assert.equal(s.interior.kind,'bank');
+ assert.throws(()=>bank(s,'deposit',10000),/Take a number/);// teller business blocked without a number
+ assert.throws(()=>bank(s,'loan_pay',1),/Take a number/);
+ s=bank(s,'atm_withdraw',20000);assert.equal(s.wallet,20000);// ATM self-serve
+ s=bank(s,'etransfer',5000,'contact');// e-Transfer self-serve
+ s=useInterior(s,'ticket');assert.ok(s.interior.ticket&&s.interior.ticket.called,'called after taking a number');
+ s=bank(s,'deposit',10000);assert.equal(s.life.bank.savings,10000);// teller business now allowed
+ s=exitInterior(s);assert.equal(s.interior,undefined);// ticket clears on exit
+ s=act(s,{type:'enter_bank',id:'bank'});assert.ok(!s.interior.ticket,'fresh visit has no ticket');
 });
 
 test('legacy saves migrate to a complete bank with wallet and plan defaults',()=>{

@@ -49,7 +49,9 @@ export function bankLayout():HomeLayout{
  const cached=layouts.get('bank');if(cached)return cached;const l=shell('bank',20,16);l.palette={floor:'#b9b4a4',wall:'#dde3df',accent:'#2f6d5b'};
  l.objects=[{id:'teller',kind:'counter',x:-2,z:-5,width:9,depth:1.6,use:[-2,-2.9],label:'Speak to a teller',action:'bank'},
  {id:'atm',kind:'register',x:6.4,z:-4.4,width:1.2,depth:1.2,use:[5.1,-4.4],label:'Use the ATM',action:'bank'},
- {id:'seat-a',kind:'chair',x:-6,z:3.4,width:.9,depth:.9},{id:'seat-b',kind:'chair',x:-3.4,z:3.4,width:.9,depth:.9},
- {id:'table-a',kind:'table',x:-4.7,z:4.9,width:2.6,depth:1.5},{id:'plant',kind:'plant',x:8,z:5,width:.8,depth:.8}];
+ {id:'ticket',kind:'register',x:-8.3,z:1,width:.7,depth:1,use:[-7,1],label:'Take a number',action:'bank'},
+ {id:'advisor',kind:'desk',x:6,z:2,width:2.4,depth:1.2,use:[4.6,2],label:'See an advisor',action:'bank'},
+ {id:'seat-a',kind:'chair',x:-5.5,z:4.6,width:.9,depth:.9},{id:'seat-b',kind:'chair',x:-3,z:4.6,width:.9,depth:.9},
+ {id:'table-a',kind:'table',x:-4.3,z:5.8,width:2.6,depth:1.2},{id:'plant',kind:'plant',x:8.4,z:5,width:.8,depth:.8}];
  bathroom(l,false);layouts.set('bank',l);return l;
 }
