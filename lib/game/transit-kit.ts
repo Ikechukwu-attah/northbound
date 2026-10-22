@@ -98,7 +98,7 @@ export function trainGangways():KitPart[]{
  for(const z of [TRAIN_MIN_Z,TRAIN_MAX_Z])p.push({p:[0,1.7,z],s:[6,3.4,.16],c:TTC_INTERIOR.silver});
  return p;
 }
-/** Continuous scenery tiles wrap by one tile only; boundaries lie beyond far clip. */
+/** Details repeat every 72 units so looping never jumps; boundaries stay beyond far clip. */
 export function rideEnvironment(subway:boolean,platformSide:1|-1,atStation:boolean):KitPart[]{
  const p:KitPart[]=[{p:[0,-.7,0],s:[WORLD_DEPTH,1,WORLD_DEPTH],c:subway?'#303638':'#52595b'}];
  if(subway){
@@ -109,9 +109,25 @@ export function rideEnvironment(subway:boolean,platformSide:1|-1,atStation:boole
    if(platform)p.push({p:[side*5.5,-.09,0],s:[4.7,.2,WORLD_DEPTH],c:'#b2b5ae'},{p:[side*3.35,.04,0],s:[.35,.05,WORLD_DEPTH],c:TTC_INTERIOR.yellow},{p:[side*7.8,1.8,0],s:[.08,.3,WORLD_DEPTH],c:TTC_INTERIOR.red});
   }
  }else for(const side of [-1,1])p.push({p:[side*7,-.12,0],s:[5,.3,WORLD_DEPTH],c:'#c5c4b1'},{p:[side*4.6,0,0],s:[.2,.4,WORLD_DEPTH],c:'#dfdfd3'});
- for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=12){
-  if(subway){p.push({p:[0,-.24,z],s:[4,.18,.3],c:'#272d2e'});for(const side of [-1,1])p.push({p:[side*7.75,3.6,z],s:[.08,.18,3],c:'#e7d9b6',finish:'light'});}
-  else for(const side of [-1,1]){const h=7+Math.abs(z/12)%3*2;p.push({p:[side*12,h/2,z],s:[6,h,12.1],c:z%24?'#bda183':'#aebbbb'});for(let y=1;y<h;y+=1.5)p.push({p:[side*8.95,y,z],s:[.07,.8,8],c:'#557780'});p.push({p:[side*6,.6,z+3],s:[.25,1.2,.25],c:'#5f7058'},{p:[side*6,2,z+3],s:[1.2,1.5,1.2],c:'#91a16e'});}
+ // Close, high-contrast details make motion readable in both Cutaway and Inside.
+ if(subway){
+  for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=.75)p.push({p:[0,-.24,z],s:[7.2,.18,.2],c:'#171e20'});
+  for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=3)for(const side of [-1,1]){
+   p.push({p:[side*7.72,2.5,z],s:[.28,6,.24],c:'#67777a'});
+   // Lamps are at window height; overhead-only lamps were hidden by the roof.
+   if(z%6===0)p.push({p:[side*7.5,2.25,z],s:[.18,.24,1.5],c:'#fff0bd',finish:'light'},
+    {p:[side*7.52,1.3,z+1.5],s:[.1,1.05,.28],c:'#d2d7c5'});
+  }
+  for(const side of [-1,1])for(const y of [.7,1])p.push({p:[side*7.65,y,0],s:[.08,.06,WORLD_DEPTH],c:'#181f22'});
+ }else{
+  for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=6)for(const side of [-1,1])p.push({p:[side*3.8,-.185,z],s:[.12,.025,3],c:'#f2ecdc'});
+  for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=12)for(const side of [-1,1]){
+   const n=((z/12)%6+6)%6,h=7+n%3*2;
+   p.push({p:[side*12,h/2,z],s:[6,h,12.1],c:n%2?'#bda183':'#aebbbb'});
+   for(let y=1;y<h;y+=1.5)p.push({p:[side*8.95,y,z],s:[.07,.8,8],c:'#557780'});
+   p.push({p:[side*6,.6,z+3],s:[.25,1.2,.25],c:'#5f7058'},{p:[side*6,2,z+3],s:[1.2,1.5,1.2],c:'#91a16e'},
+    {p:[side*5.3,1.8,z-2],s:[.1,3.6,.1],c:'#484f51'},{p:[side*5.3,3.6,z-2],s:[.6,.14,.3],c:'#ffe6a4',finish:'light'});
+  }
  }
  return p;
 }
