@@ -4,7 +4,7 @@ import {OrbitControls,PerspectiveCamera} from '@react-three/drei';
 import {useEffect,useMemo,useRef,useState,Suspense} from 'react';
 import * as THREE from 'three';
 import type {GameState,Command} from '@/lib/game/engine';
-import {inVehicle,transitObjects,transitPosition,transitLayout,boardSign,type TransitState} from '@/lib/game/transit-interiors';
+import {inVehicle,transitObjects,transitPosition,transitLayout,boardSign,stationMirror,type TransitState} from '@/lib/game/transit-interiors';
 import {interiorPath} from '@/lib/game/interiors';
 import {LINES} from '@/lib/game/transit';
 import {distance,type Point} from '@/lib/game/world';
@@ -12,6 +12,7 @@ import {movementKey,blocksMovement,directionVector,type Direction} from '@/lib/g
 import Human from '../Human';
 import {VehicleCabin,StationEnvironment} from './TransitKit';
 import {transitSeats,TRAIN_FOG_END} from '@/lib/game/transit-kit';
+import {TRANSIT_CAMERA as TC,transitCameraLimits} from '@/lib/game/transit-camera';
 type Props={game:GameState;send:(c:Command)=>Promise<boolean>;busy:boolean;movementEnabled:boolean;reset:number;quality:boolean};
 const lineOf=(t:TransitState)=>LINES.find(l=>l.id===t.legs[t.index].line);
 const lineColorOf=(t:TransitState)=>t.mode==='subway'?(lineOf(t)?.color||'#da291c'):'#da291c';
@@ -28,11 +29,14 @@ function NamePlate({name,y}:{name:string;y:number}){
  useFrame(()=>{if(ref.current)ref.current.quaternion.copy(camera.quaternion)});
  return <group ref={ref} position={[0,y,0]}><mesh renderOrder={999}><planeGeometry args={[2.6,.8]}/><meshBasicMaterial map={texture} transparent depthTest={false}/></mesh></group>;
 }
-function Scene({game,send,busy,movementEnabled,reset,quality,cabinView}:Props&{cabinView:boolean}){
+function Scene({game,send,busy,movementEnabled,reset,quality,cabinView,along}:Props&{cabinView:boolean;along:number}){
  const t=game.transit!,vehicle=inVehicle(t),{camera,size}=useThree(),controls=useRef<any>(null),actor=useRef<THREE.Group>(null),previous=useRef(t.position),keys=useRef(new Set<Direction>()),last=useRef(0),transitioned=useRef(0);
+ const previousAlong=useRef(0);
  const [position,setPosition]=useState<Point>(t.position);const objects=transitObjects(t),seat=objects.find(o=>o.id===t.seat),boardable=Date.now()>=t.readyAt;
- // Fill the width on phones for the narrow vehicle; keep the station readable.
- useEffect(()=>{camera.position.set(...(cabinView?[0,2,8.6]:!vehicle&&t.mode!=='subway'?[-16,20,22]:[16,20,22]) as [number,number,number]);if(camera instanceof THREE.OrthographicCamera){const phone=size.width<620;camera.zoom=vehicle?Math.min(size.width/15,size.height/17):Math.min(size.width/(phone?22:16),size.height/(phone?21:19));camera.updateProjectionMatrix();}controls.current?.target.set(0,cabinView?1.4:0,cabinView?-2.5:0);controls.current?.update()},[camera,size.width,size.height,reset,vehicle,cabinView]);
+ const limits=transitCameraLimits(size.width,size.height,vehicle);
+ const mirror=vehicle?1:stationMirror(t);
+ useEffect(()=>{const at=cabinView?TC.insidePosition:vehicle?TC.cutawayPosition:[TC.stationPosition[0]*mirror,20,22] as [number,number,number];camera.position.set(...at);if(camera instanceof THREE.OrthographicCamera){camera.zoom=limits.zoom;camera.updateProjectionMatrix();}controls.current?.target.set(...(cabinView?TC.insideTarget:[0,0,0]) as [number,number,number]);previousAlong.current=0;controls.current?.update()},[camera,size.width,size.height,reset,vehicle,cabinView,mirror]);
+ useEffect(()=>{const delta=along-previousAlong.current;camera.position.z+=delta;if(controls.current){controls.current.target.z+=delta;controls.current.update();}previousAlong.current=along},[along,camera,size.width,size.height,reset,vehicle,cabinView,mirror]);
  useEffect(()=>{transitioned.current=Date.now()},[t.stage]);// swallow the tap that changed the scene
  useEffect(()=>{const down=(e:KeyboardEvent)=>{if(!movementEnabled||blocksMovement(e.target as HTMLElement))return;const key=movementKey(e);if(key){keys.current.add(key);e.preventDefault()}},up=(e:KeyboardEvent)=>{const k=movementKey(e);if(k)keys.current.delete(k)},clear=()=>keys.current.clear();window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',clear);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear)}});
  useFrame(()=>{const p=transitPosition(t);if(distance(position,p)>.1)setPosition(p);if(actor.current){const actual=seat?.point||p;actor.current.position.set(actual[0],0,actual[1]);const dx=p[0]-previous.current[0],dz=p[1]-previous.current[1];if(seat)actor.current.rotation.y=transitSeats(t.mode).find(s=>s.x===seat.point[0]&&s.z===seat.point[1])?.rotation??Math.PI/2;else if(Math.hypot(dx,dz)>.001)actor.current.rotation.y=Math.atan2(dx,dz);previous.current=p;}
@@ -42,7 +46,7 @@ function Scene({game,send,busy,movementEnabled,reset,quality,cabinView}:Props&{c
  // One tap on a hotspot: walk there and use it, no popup in between.
  const onTap=(id:string)=>(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();if(e.delta<5&&!locked&&guard())void send({type:'transit_use',id})};
  const activeOf=(o:typeof objects[number])=>o.id.startsWith('seat')?t.seat!==o.id:o.id==='board'?boardable:o.id==='door'?(t.stage==='boarding'||t.stage==='arrival'&&t.departAt==null):o.id==='reader'?!t.validated:true;
- return <><color attach="background" args={['#d9e2db']}/>{t.mode==='subway'&&<fog attach="fog" args={['#d9e2db',65,TRAIN_FOG_END]}/>}<ambientLight intensity={1.5}/><directionalLight position={[6,14,8]} intensity={2}/>{vehicle?<VehicleCabin t={t} minutes={game.minutes} cabinView={cabinView} quality={quality}/>:<StationEnvironment t={t} minutes={game.minutes}/>}
+ return <><color attach="background" args={[t.mode==='subway'?'#303638':'#b6cbd1']}/><fog attach="fog" args={[t.mode==='subway'?'#303638':'#b6cbd1',cabinView?TC.insideFogStart:70,cabinView?TC.insideFogEnd:TRAIN_FOG_END]}/><ambientLight intensity={1.5}/><directionalLight position={[6,14,8]} intensity={2}/>{vehicle?<VehicleCabin t={t} minutes={game.minutes} cabinView={cabinView} quality={quality}/>:<StationEnvironment t={t} minutes={game.minutes}/>}
  <mesh position={[0,.02,0]} rotation={[-Math.PI/2,0,0]} onClick={floor}><planeGeometry args={[vehicle?5.8:11.8,vehicle?17.8:13.8]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
  {/* Every hotspot is a visible, tappable ring sitting on the object itself; colour keyed by action (see legend). */}
  {objects.map(o=>{if(!activeOf(o))return null;const color=ringColor(o.id);
@@ -52,8 +56,7 @@ function Scene({game,send,busy,movementEnabled,reset,quality,cabinView}:Props&{c
    <mesh position={[o.point[0],.75,o.point[1]]}><cylinderGeometry args={[.85,.85,1.7,18]}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
   </group>})}
  <group ref={actor} position={[t.position[0],0,t.position[1]]}><NamePlate name={game.name} y={seat?2.1:2.7}/><Human sheltered scale={1} appearance={game.life.appearance} minutes={game.minutes} action={t.movement?'walk':seat?'sit':t.stage==='riding'?'wait':'idle'}/><mesh rotation={[-Math.PI/2,0,0]} position={[0,.035,0]}><ringGeometry args={[.35,.45,24]}/><meshBasicMaterial color="#baff65" depthTest={false}/></mesh></group>
- <OrbitControls key={cabinView?'inside':'cutaway'} ref={controls} makeDefault enablePan={false} enableDamping minZoom={8} maxZoom={65} minDistance={cabinView?5:0} maxDistance={cabinView?11.3:Infinity} minPolarAngle={cabinView?1.42:.9} maxPolarAngle={cabinView?1.52:.9} minAzimuthAngle={cabinView?-.23:-Infinity} maxAzimuthAngle={cabinView ? .23 : Infinity}/></>;
-}
+ <OrbitControls key={cabinView?'inside':'cutaway'} ref={controls} makeDefault enableRotate={TC.rotate} enablePan={TC.pan} enableDamping minZoom={limits.minZoom} maxZoom={limits.maxZoom} minDistance={cabinView?TC.minDistance:0} maxDistance={cabinView?TC.maxDistance:Infinity}/></>;}
 function StationBanner({t}:{t:TransitState}){const sign=boardSign(t),line=lineOf(t);return <div className="transit-station-banner"><span>{sign.label}</span><strong>{sign.name}</strong>{line&&<em style={{background:line.color}}>{line.name.replace(/ ·.*$/,'')}</em>}</div>;}
 function HotspotLegend({t}:{t:TransitState}){const items=[...new Map(activeRings(t).map(o=>{const k=ringKey(o.id);return [k,RING[k]] as const})).values()].filter(Boolean);if(!items.length)return null;return <div className="transit-ring-legend" aria-label="Tap-ring colour key">{items.map(i=><span key={i.label}><i style={{background:i.color}}/>{i.label}</span>)}</div>;}
-export default function TransitInterior(props:Props){const [cabinView,setCabinView]=useState(false);const vehicle=inVehicle(props.game.transit!);useEffect(()=>{if(!vehicle)setCabinView(false)},[vehicle]);return <><StationBanner t={props.game.transit!}/><HotspotLegend t={props.game.transit!}/><Canvas orthographic dpr={[1,props.quality?1.5:1]} camera={{position:[16,20,22],zoom:25,near:.1,far:150}} gl={{antialias:true,powerPreference:'high-performance'}}>{cabinView&&vehicle&&<PerspectiveCamera makeDefault position={[0,2,8.6]} fov={72} near={.08} far={120}/>}<Suspense fallback={null}><Scene {...props} cabinView={cabinView&&vehicle}/></Suspense></Canvas>{vehicle&&<div className="transit-view-switch" role="group" aria-label="Vehicle camera"><button aria-pressed={!cabinView} onClick={()=>setCabinView(false)}>Cutaway</button><button aria-pressed={cabinView} onClick={()=>setCabinView(true)}>Inside view</button></div>}</>}
+export default function TransitInterior(props:Props){const [cabinView,setCabinView]=useState(false),[along,setAlong]=useState(0);const vehicle=inVehicle(props.game.transit!);useEffect(()=>{if(!vehicle)setCabinView(false);setAlong(0)},[vehicle]);return <><StationBanner t={props.game.transit!}/><HotspotLegend t={props.game.transit!}/><Canvas orthographic dpr={[1,props.quality?1.5:1]} camera={{position:[16,20,22],zoom:25,near:.1,far:150}} gl={{antialias:true,powerPreference:'high-performance'}}>{cabinView&&vehicle&&<PerspectiveCamera makeDefault position={TC.insidePosition} fov={TC.insideFov} near={.08} far={TC.insideFar}/>}<Suspense fallback={null}><Scene {...props} cabinView={cabinView&&vehicle} along={along}/></Suspense></Canvas>{vehicle&&<div className="transit-view-switch" role="group" aria-label="Vehicle camera"><button aria-pressed={!cabinView} onClick={()=>setCabinView(false)}>Cutaway</button><button aria-pressed={cabinView} onClick={()=>setCabinView(true)}>Inside view</button><button aria-label="Look farther along vehicle" disabled={along===-2} onClick={()=>setAlong(v=>Math.max(-2,v-1))}>←</button><button aria-label="Look back along vehicle" disabled={along===2} onClick={()=>setAlong(v=>Math.min(2,v+1))}>→</button></div>}</>}
