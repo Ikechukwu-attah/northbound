@@ -14,7 +14,7 @@ export const STOPS:Stop[]=[
  stop('bayview','Bayview',1,-13),stop('bessarion','Bessarion',2,-13),stop('leslie','Leslie',3,-13),stop('donmills','Don Mills',5,-13),
  // Surface stops, named by intersection in the TTC style.
  stop('queenbathurst','Queen St W at Bathurst St',-2.3,-2),stop('queenwest','Queen St W at Spadina Ave',-2,-2),stop('queenuniversity','Queen St W at University Ave',-1.3,-2),stop('queenbay','Queen St at Bay St',-0.6,-2),stop('queenyonge','Queen St at Yonge St',-0.2,-2),stop('harbour','Queens Quay at Spadina Ave',1,0),stop('harbourfront','Queens Quay at Lower Simcoe St',1,-1),
- stop('stc','Scarborough Centre Station',11,-9),stop('bluffs','Brimley Rd at Bluffer’s Park',11,0),stop('rouge','Rouge Hill (Lawrence Ave E at Port Union Rd)',15,-8),stop('weston','Weston Rd at Lawrence Ave W',-5,-9),stop('york','Eglinton Ave W at Keele St',-4,-7),stop('mimico','Royal York Rd at Mimico GO',-7,-1),stop('lakeshore','Lake Shore Blvd W at Long Branch Loop',-9,0),stop('ey','Pape Ave at Cosburn Ave',4,-6),stop('taylor','O’Connor Dr at Taylor Creek Park',6,-7),stop('pearson','Pearson Airport · Terminal 1',-9,-8)];
+ stop('stc','Scarborough Centre Station',11,-9),stop('bluffs','Brimley Rd at Bluffer’s Park',11,0),stop('rouge','Rouge Hill GO Station',15,-8),stop('weston','Weston Rd at Lawrence Ave W',-5,-9),stop('york','Eglinton Ave W at Keele St',-4,-7),stop('mimico','Royal York Rd at Mimico GO',-7,-1),stop('lakeshore','Lake Shore Blvd W at Long Branch Loop',-9,0),stop('ey','Pape Ave at Cosburn Ave',4,-6),stop('taylor','O’Connor Dr at Taylor Creek Park',6,-7),stop('pearson','Pearson Airport · Terminal 1',-9,-8)];
 export type Line={id:string;name:string;color:string;mode:'subway'|'bus'|'streetcar';stops:string[];times:number[];wait:number};
 // Average in-service speeds (m/min) that turn real OSM station distances into leg times.
 const SPEED:Record<Line['mode'],number>={subway:480,bus:320,streetcar:230};
@@ -25,7 +25,12 @@ const RAW:Omit<Line,'times'>[]=[
  {id:'2',name:'Line 2 · Bloor–Danforth',color:'#00923f',mode:'subway',stops:['kipling','islington','royalyork','oldmill','jane','runnymede','highpark','keele','dundas','lansdowne','dufferin','ossington','christie','bathurst','spadina','stgeorge','bay','bloor','sherbourne','castlefrank','broadview','chester','pape','donlands','greenwood','coxwell','woodbine','mainstreet','victoriapark','warden','kennedy'],wait:4},
  {id:'4',name:'Line 4 · Sheppard',color:'#8e44ad',mode:'subway',stops:['sheppard','bayview','bessarion','leslie','donmills'],wait:6},
  {id:'airport',name:'900 Airport Express',color:'#b7594c',mode:'bus',stops:['pearson','kipling'],wait:10},
- {id:'scarborough',name:'116 Morningside / Scarborough Centre',color:'#b7594c',mode:'bus',stops:['kennedy','stc','rouge'],wait:8},
+ // Current TTC busway service (opened 2026-09-30); intermediate busway stops are compressed.
+ // https://www.ttc.ca/riding-the-ttc/Updates/Scarborough--Busway
+ {id:'903',name:'903 Kennedy Stn–Scarborough Express · Scarborough Busway',color:'#b7594c',mode:'bus',stops:['kennedy','stc'],wait:8},
+ // 38A runs Kennedy → Scarborough Centre → Rouge Hill GO, not 116 Morningside.
+ // https://www.ttc.ca/routes-and-schedules/38/0/16335
+ {id:'38A',name:'38A Highland Creek · Rouge Hill GO via Scarborough Centre',color:'#b7594c',mode:'bus',stops:['kennedy','stc','rouge'],wait:10},
  {id:'bluffs',name:'12 Kingston Rd',color:'#b7594c',mode:'bus',stops:['kennedy','bluffs'],wait:10},
  {id:'weston',name:'89 Weston',color:'#b7594c',mode:'bus',stops:['jane','weston','york','eglinton'],wait:8},
  {id:'lakeshore',name:'110 Islington South / Lakeshore',color:'#b7594c',mode:'bus',stops:['kipling','mimico','lakeshore'],wait:8},
@@ -35,6 +40,10 @@ const RAW:Omit<Line,'times'>[]=[
 ];
 export const LINES:Line[]=RAW.map(l=>({...l,times:l.stops.slice(1).map((s,i)=>legMinutes(l.stops[i],s,l.mode))}));
 export const stopById=(id:string)=>STOPS.find(s=>s.id===id);
+export const isSubwayStop=(id:string)=>LINES.some(l=>l.mode==='subway'&&l.stops.includes(id));
+/** Scarborough Centre remains a gated TTC bus terminal after Line 3's closure. */
+export const isPaidStation=(id:string)=>id==='stc'||isSubwayStop(id);
+export const isBusTerminal=(id:string)=>isPaidStation(id)||LINES.some(l=>l.mode==='bus'&&(l.stops[0]===id||l.stops[l.stops.length-1]===id));
 export const nearestStop=(p:Point)=>[...STOPS].sort((a,b)=>distance(p,a.point)-distance(p,b.point))[0];
 export type Leg={from:string;to:string;line:string;minutes:number};
 export function transitRoute(from:string,to:string){

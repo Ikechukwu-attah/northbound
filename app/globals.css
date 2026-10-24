@@ -110,8 +110,14 @@
  .object-dismiss{min-width:40px;min-height:40px}
  .interior-heading h1{font-size:23px}
 }
+
+.scene-recovery-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.world-reload{padding:24px;text-align:center}.world-reload p{max-width:340px;line-height:1.5}
 /* Bank panel: amount input and action rows. */
 .bank-amount{display:block;margin:9px 0}.bank-amount input,.bank-amount select{display:block;width:100%;margin-top:4px;padding:9px;border:1px solid #c5cfb9;border-radius:8px;background:#fbfaf3;color:#2d4e3b;font-size:15px}
 .bank-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}.bank-actions button{flex:1;min-width:120px}
 /* Secondary wallet-cash chip in the topbar (chequing is the primary). */
 .wallet.cash{background:#eef2e4;border-color:#cfd8c2}.wallet.cash strong{font-size:13px}
+
+/* A persistent, thumb-sized stop control, independent of camera angle and scene occlusion. */
+.transit-stop-control{position:absolute;right:18px;top:216px;z-index:18;max-width:240px;font:600 12px/1.4 Arial,sans-serif}.transit-stop-control button{min-height:48px;padding:12px 22px;background:#b92323;color:#fff;border:3px solid #ffd45e;border-radius:12px;box-shadow:0 3px 12px #182d3560;cursor:pointer}.transit-stop-control button[aria-pressed=true]{background:#2d6250}.transit-stop-control button:disabled{cursor:default}.transit-stop-control span{display:block;padding:10px 14px;background:#fff6da;color:#324c3c;border-radius:12px;border:1px solid #d0c592}
+@media(max-width:620px){.transit-stop-control{top:auto;bottom:250px;right:10px;max-width:210px}.transit-stop-control button{min-width:164px}.transit-stop-control span{font-size:11px}}

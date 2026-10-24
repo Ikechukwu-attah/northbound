@@ -1,6 +1,7 @@
+import {buildingApproachAt} from './building-catalog';
 import {COMMUNITY_PLACES} from './district-content';
 import {isWalkable} from './navigation';
-import {homeEntrance,onHomeApproach} from './building-entrances';
+import {homeEntrance,onHomeApproach,hasBuildingDoor} from './building-entrances';
 import {DISTRICTS,type DistrictId,type Spot} from './data';
 export type Point=[number,number];
 export const BLOCK=24, METRES_PER_UNIT=40;
@@ -45,16 +46,18 @@ export const PLACES:WorldSpot[]=WORLD_DISTRICTS.flatMap(d=>d.spots);
 export const placeById=(id:string)=>PLACES.find(p=>p.id===id);
 export const BANK_PLACES=()=>BANK_PLACE_IDS.map(id=>placeById(id)!).filter(Boolean);
 export const nearestBankPlace=(p:Point)=>BANK_PLACES().sort((a,b)=>distance(p,entrance(a))-distance(p,entrance(b)))[0];
-export const entrance=(p:Spot):Point=>p.kind==='home'?homeEntrance(p).landing:[p.x,p.z+7];
+export const entrance=(p:Spot):Point=>hasBuildingDoor(p)?homeEntrance(p).landing:[p.x,p.z+7];
 export const distance=(a:Point,b:Point)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 export const sidewalk=(n:number)=>Math.round((n+5)/BLOCK)*BLOCK-5;
 export function inBounds(p:Point){return p.every(Number.isFinite)&&p[0]>=BOUNDS.west&&p[0]<=BOUNDS.east&&p[1]>=BOUNDS.north&&p[1]<=BOUNDS.south;}
 export function onSidewalk(p:Point){return inBounds(p)&&(Math.abs(p[0]-sidewalk(p[0]))<.05||Math.abs(p[1]-sidewalk(p[1]))<.05);}
-export const homeApproachAt=(p:Point)=>PLACES.find(s=>s.kind==='home'&&onHomeApproach(p,s));
-export const onFootpath=(p:Point)=>onSidewalk(p)||!!homeApproachAt(p);
+export const homeApproachAt=(p:Point)=>PLACES.find(s=>hasBuildingDoor(s)&&onHomeApproach(p,s));
+export const onFootpath=(p:Point)=>onSidewalk(p)||!!homeApproachAt(p)||!!buildingApproachAt(p);
 export function snapPoint(p:Point):Point{const x=Math.max(BOUNDS.west,Math.min(BOUNDS.east,p[0])),z=Math.max(BOUNDS.north,Math.min(BOUNDS.south,p[1]));return Math.abs(x-sidewalk(x))<Math.abs(z-sidewalk(z))?[sidewalk(x),z]:[x,sidewalk(z)];}
 /** Shortest rectilinear route on the connected sidewalk grid, including crossings. */
 export function walkingPath(from:Point,to:Point):Point[]{
+ const fb=!onSidewalk(from)?buildingApproachAt(from):undefined,tb=!onSidewalk(to)?buildingApproachAt(to):undefined;
+ if(fb||tb){if(fb&&tb&&distance(fb.approach[0],tb.approach[0])<.01)return [from,to];return [...(fb?[from]:[]),...walkingPath(fb?fb.approach[0]:from,tb?tb.approach[0]:to),...(tb?[to]:[])].filter((p,i,a)=>!i||distance(p,a[i-1])>.001);}
  const fromHome=!onSidewalk(from)?homeApproachAt(from):undefined,toHome=!onSidewalk(to)?homeApproachAt(to):undefined;
  if(fromHome||toHome){
   if(fromHome?.id===toHome?.id)return [from,to];

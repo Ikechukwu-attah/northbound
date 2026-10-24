@@ -1,8 +1,9 @@
+import {stationDoorSide} from './transit-camera';
 import {transitSeats,TRANSIT_POLES,surfaceBoarding} from './transit-kit';
 import type {GameState,Command} from './engine';
 import {fareFor} from './engine';
 import {advanceLife} from './life';
-import {FARE,LINES,nearestStop,stopById,transitRoute,serviceOpen,fareMonth,type Leg} from './transit';
+import {FARE,LINES,nearestStop,stopById,transitRoute,serviceOpen,fareMonth,isPaidStation,isBusTerminal,type Leg} from './transit';
 import {distance,pathLength,pointAlong,districtAt,nearbyPlace,type Point} from './world';
 import {interiorPath,interiorSegment,insideWalkable,type HomeLayout} from './interiors';
 export type TransitState={layoutVersion?:number;origin:string;destination:string;legs:Leg[];index:number;stage:'entrance'|'platform'|'boarding'|'riding'|'arrival'|'exit';mode:'subway'|'bus'|'streetcar';night:boolean;paid:boolean;validated?:boolean;requested:boolean;paidArea?:boolean;departAt?:number;readyAt:number;position:Point;seat?:string;movement?:{path:Point[];startedAt:number;seconds:number;object?:string}};
@@ -14,31 +15,40 @@ const modeFor=(t:TransitState)=>t.night?'bus':LINES.find(l=>l.id===t.legs[t.inde
 export const boardSign=(t:TransitState)=>({label:t.stage==='riding'?'NEXT STOP':'AT STOP',name:stopById(['riding','arrival','exit'].includes(t.stage)?t.legs[t.index].to:t.legs[t.index].from)!.name});
 /** This arrival is the rider's own stop (destination or line transfer), not a brief pass-through. */
 const isHoldStop=(t:TransitState)=>t.index===t.legs.length-1||t.legs[t.index+1]?.line!==t.legs[t.index].line||(t.mode!=='subway'&&t.requested);
-/** A subway station is a fare-paid area: buses there can be boarded without re-tapping. */
-const isSubwayStop=(id:string)=>LINES.some(l=>l.mode==='subway'&&l.stops.includes(id));
+/** One door rule shared by vehicle animation, status text and the exit command. */
+export const transitDoorsOpen=(t:TransitState)=>t.stage==='boarding'||t.stage==='arrival'&&(t.mode==='subway'||t.requested||isBusTerminal(t.legs[t.index].to));
+export function busDestination(t:TransitState){
+ const leg=t.legs[t.index],line=LINES.find(l=>l.id===leg.line)!;
+ const direction=line.stops.indexOf(leg.to)>line.stops.indexOf(leg.from)?1:-1;
+ const end=stopById(direction===1?line.stops[line.stops.length-1]:line.stops[0])!;
+ return {title:(t.night?'NIGHT BUS':line.name.split(' ')[0])+' '+end.name,via:line.id==='903'||line.id==='38A'?'Scarborough Busway':line.name};
+}
+/** Shared by geometry, door animations and the authoritative walking destination. */
+export function transitPlatformSide(t:TransitState):1|-1{const leg=t.legs[t.index];return t.mode==='subway'?stationDoorSide(leg.line,['riding','arrival','exit'].includes(t.stage)?leg.to:leg.from):1;}
+export const stationMirror=(t:TransitState)=>t.mode==='subway'&&t.stage!=='entrance'?-transitPlatformSide(t):1;
 export function transitObjects(t:TransitState):TransitObject[]{
- if(t.stage==='entrance')return [{id:'gate',label:'Tap PRESTO · Enter platform',point:[0,-2],use:[0,0]},{id:'street',label:'Return to street',point:[0,6.5],use:[0,5.5]}];
- if(t.stage==='platform')return [{id:'board',label:'Board '+(t.mode==='subway'?'train':t.mode),point:t.mode==='subway'?[3,-2]:surfaceBoarding(t.mode).door,use:t.mode==='subway'?[1.5,-2]:surfaceBoarding(t.mode).landing},{id:'street',label:'Exit to street',point:[0,6.5],use:[0,5.5]}];
+ if(t.stage==='entrance')return [{id:'gate',label:t.mode==='bus'?'Tap PRESTO · Enter station bus bay':'Tap PRESTO · Enter platform',point:[0,-2],use:[0,0]},{id:'street',label:'Return to street',point:[0,6.5],use:[0,5.5]}];
+ if(t.stage==='platform')return [{id:'board',label:'Board '+(t.mode==='subway'?'train':t.mode),point:t.mode==='subway'?[3*stationMirror(t),-2]:surfaceBoarding(t.mode).door,use:t.mode==='subway'?[1.5*stationMirror(t),-2]:surfaceBoarding(t.mode).landing},{id:'street',label:'Exit to street',point:[0,6.5],use:[0,5.5]}];
  if(t.stage==='exit')return [{id:'street',label:'Walk out of station',point:[0,6.5],use:[0,5.5]}];
  const sub=t.mode==='subway';
  return [...(!t.validated?[{id:'reader',label:'Tap card · Fare $'+(FARE.adult/100).toFixed(2),point:[1.8,6.6] as Point,use:[.3,6] as Point}]:[]),
  ...[-3,0,3].map((z,n)=>({id:'seat-'+n,label:'Sit here',point:[-2,z] as Point,use:[-.6,z] as Point})),
  {id:'stand',label:'Stand · Hold rail',point:[1,1] as Point,use:[0,1] as Point},
- ...(sub?[]:[{id:'request',label:t.requested?'Stop requested':'Request stop / exit',point:[1.8,-4.5] as Point,use:[.4,-4.5] as Point}]),
- {id:'door',label:t.stage==='boarding'?'Step back off at '+stopById(t.legs[t.index].from)!.name:t.stage==='arrival'?'Exit at '+stopById(t.legs[t.index].to)!.name:sub?'Exit door · opens at the stop':'Exit door · wait for stop',point:[2.8,5] as Point,use:[.7,5] as Point}];
+ ...(sub||isBusTerminal(t.legs[t.index].to)?[]:[{id:'request',label:t.requested?'Stop requested':'Request stop / exit',point:[1.8,-4.5] as Point,use:[.4,-4.5] as Point}]),
+ {id:'door',label:t.stage==='boarding'?'Step back off at '+stopById(t.legs[t.index].from)!.name:t.stage==='arrival'?'Exit at '+stopById(t.legs[t.index].to)!.name:sub?'Exit door · opens at the stop':'Exit door · wait for stop',point:[transitPlatformSide(t)*2.8,-5.5] as Point,use:[transitPlatformSide(t)*.4,-5.5] as Point}];
 }
 export function transitLayout(t:TransitState):HomeLayout{
- const vehicle=inVehicle(t),objects=vehicle?transitSeats(t.mode).map((seat,n)=>({...seat,id:'chair'+n,kind:'chair' as const})):[{id:'platform-bench',kind:'chair' as const,x:-4,z:0,width:1.4,depth:3}];
- return {tier:'room',width:vehicle?6:12,depth:vehicle?18:14,door:[0,5.5],doors:[],objects,walls:vehicle?[...TRANSIT_POLES.map(([x,z])=>({x,z,width:.08,depth:.08})),...(t.mode==='bus'?[{x:-1.75,z:8,width:2.7,depth:1.8}]:t.mode==='streetcar'?[{x:-1.5,z:7.7,width:1.1,depth:1.1}]:[])]:t.stage==='entrance'?[{x:0,z:-2,width:12,depth:.7}]:t.mode==='subway'?[{x:4.4,z:-2,width:.3,depth:9}]:[{x:5.2,z:0,width:1.9,depth:14}],bathroom:{x:0,z:0,width:0,depth:0},palette:{floor:'#aaa99e',wall:'#e4e2d7',accent:'#da291c'}};
+ const vehicle=inVehicle(t),objects=vehicle?transitSeats(t.mode).map((seat,n)=>({...seat,id:'chair'+n,kind:'chair' as const})):[{id:'platform-bench',kind:'chair' as const,x:-4*stationMirror(t),z:0,width:1.4,depth:3}];
+ return {tier:'room',width:vehicle?6:12,depth:vehicle?18:14,door:[0,5.5],doors:[],objects,walls:vehicle?[...TRANSIT_POLES.map(([x,z])=>({x,z,width:.08,depth:.08})),...(t.mode==='bus'?[{x:-1.75,z:8,width:2.7,depth:1.8}]:t.mode==='streetcar'?[{x:-1.5,z:7.7,width:1.1,depth:1.1}]:[])]:t.stage==='entrance'?[{x:0,z:-2,width:12,depth:.7}]:t.mode==='subway'?[{x:4.4*stationMirror(t),z:-2,width:.3,depth:14}]:[{x:5.2,z:0,width:1.9,depth:14}],bathroom:{x:0,z:0,width:0,depth:0},palette:{floor:'#aaa99e',wall:'#e4e2d7',accent:'#da291c'}};
 }
 export function transitPosition(t:TransitState,now=Date.now()):Point{return t.movement?pointAlong(t.movement.path,Math.max(0,Math.min(1,(now-t.movement.startedAt)/(t.movement.seconds*1000)))):t.position;}
 export function transitStatus(t:TransitState,now=Date.now()){
  if(t.movement)return 'Walking to '+(transitObjects(t).find(o=>o.id===t.movement?.object)?.label||'your spot')+'…';
- if(t.stage==='entrance')return 'Walk to the fare gate and tap your card';
- if(t.stage==='platform')return now<t.readyAt?(t.mode==='subway'?'Wait behind the yellow line · Train arriving…':'Wait on the sidewalk · '+(t.mode==='bus'?'Bus':'Streetcar')+' arriving…'):(t.mode==='subway'?'Doors open · Walk over to board':t.mode==='bus'?'Front door open · Tap the door to board the bus':'Vehicle ready · Tap the boarding marker');
+ if(t.stage==='entrance')return 'Walk to the station fare gate and tap your card'+(t.mode==='bus'?' · Bus bays inside':'');
+ if(t.stage==='platform')return now<t.readyAt?(t.mode==='subway'?'Wait behind the yellow line · Train arriving…':(t.paidArea?'Wait in the station bus bay · ':'Wait on the sidewalk · ')+(t.mode==='bus'?'Bus':'Streetcar')+' arriving…'):(t.mode==='subway'?'Doors open · Walk over to board':t.mode==='bus'?'Front door open · Tap the door to board the bus':'Vehicle ready · Tap the boarding marker');
  if(t.stage==='boarding')return 'At '+stopById(t.legs[t.index].from)!.name+' · '+(t.validated?'Choose a seat or stand at the rail':'Tap your card at the reader');
- if(t.stage==='exit')return 'Off the train · Walk through the exit to the street';
- if(t.stage==='arrival'){const name=stopById(t.legs[t.index].to)!.name;if(t.departAt!=null)return 'At '+name+' · Doors open';return t.mode==='subway'||t.requested?'At '+name+' · Doors open · Walk to exit':'At '+name+' · Press the request strip to open the doors';}
+ if(t.stage==='exit')return (t.mode==='bus'?'At the station bus bay':'Off the train')+' · Walk through the exit to the street';
+ if(t.stage==='arrival'){const name=stopById(t.legs[t.index].to)!.name;if(t.departAt!=null)return 'At '+name+' · Doors open';return transitDoorsOpen(t)?'At '+name+' · Doors open · Walk to exit':'At '+name+' · Press the request strip to open the doors';}
  return 'Next stop: '+stopById(t.legs[t.index].to)!.name+(t.requested?' · Stop requested':t.seat?' · Seated':' · Standing');
 }
 /** Charges at most one fare per journey; returns the rider-facing fare line. */
@@ -46,10 +56,11 @@ function tap(s:GameState,t:TransitState){if(t.paid)return 'Transfer · $0';const
 /** Preview the fare the next tap will charge, for the walk-over toast. */
 const farePreview=(s:GameState,t:TransitState)=>t.paid?'Transfer · $0':fareFor(s)>0?'Fare · $'+(fareFor(s)/100).toFixed(2):'Transfer · $0';
 function leave(s:GameState,at:string){const stop=stopById(at)!;s.position=stop.point;s.district=districtAt(stop.point);s.location=nearbyPlace(stop.point)?.id||'';if(!s.visited.includes(s.district))s.visited.push(s.district);s.bike=s.bike||s.visited.length>=3;delete s.transit;return 'Outside '+stop.name+'.';}
+function requestStop(t:TransitState){if(t.stage==='boarding')throw new Error('Choose a seat or stand before departure.');t.requested=true;return t.stage==='arrival'?'Exit requested. Doors are open.':'Stop requested for '+stopById(t.legs[t.index].to)!.name+'.';}
 function operate(s:GameState,id:string,now:number){
  const t=s.transit!,o=transitObjects(t).find(o=>o.id===id);if(!o||distance(t.position,o.use)>.65)throw new Error('Walk to the transit object first.');
  if(id==='street')return leave(s,transitStop(t).id);
- if(id==='gate'){const fare=tap(s,t);t.validated=true;t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return fare+' · Card accepted. Follow the platform to the train.';}
+ if(id==='gate'){const fare=tap(s,t);t.validated=true;t.paidArea=true;t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return fare+' · Card accepted. '+(t.mode==='bus'?'Follow the signs to the station bus bay.':'Follow the platform to the train.');}
  if(id==='board'){
   if(now<t.readyAt)throw new Error('Wait behind the yellow line until the vehicle doors open.');
   t.stage='boarding';t.validated=t.mode==='subway'||!!t.paidArea;t.position=[.5,6];delete t.seat;return t.validated?(t.paidArea&&t.mode!=='subway'?'Boarded in the fare-paid area — no tap needed. ':'Boarded. ')+'Choose a seat or the standing rail.':'Boarded. Tap at the green reader by the door.';
@@ -61,15 +72,15 @@ function operate(s:GameState,id:string,now:number){
   if(t.stage==='boarding'){t.stage='riding';t.readyAt=now+6000;s.tripCount++;}
   return (t.seat?'Seated. ':'Holding the rail. ')+transitStatus(t,now);
  }
- if(id==='request'){if(t.stage==='boarding')throw new Error('Choose a seat or stand before departure.');t.requested=true;return t.stage==='arrival'?'Exit requested. Doors are open.':'Stop requested for '+stopById(t.legs[t.index].to)!.name+'.';}
+ if(id==='request')return requestStop(t);
  if(id==='door'){
-  if(t.stage==='boarding'){t.stage='platform';t.position=t.mode==='subway'?[1.5,-2]:surfaceBoarding(t.mode).landing;delete t.seat;return 'Back at the stop. Board again or return to the street.';}
-  if(t.stage!=='arrival')throw new Error('The doors stay closed until the stop.');if(t.departAt!=null)throw new Error('This isn’t your stop — the train continues shortly.');if(t.mode!=='subway'&&!t.requested)throw new Error('Press the stop request button first.');
+  if(t.stage==='boarding'){t.stage='platform';t.position=t.mode==='subway'?[1.5*stationMirror(t),-2]:surfaceBoarding(t.mode).landing;delete t.seat;return 'Back at the stop. Board again or return to the street.';}
+  if(t.stage!=='arrival')throw new Error('The doors stay closed until the stop.');if(t.departAt!=null)throw new Error('This isn’t your stop — the train continues shortly.');if(!transitDoorsOpen(t))throw new Error('Press the stop request button first.');
   const at=t.legs[t.index].to,final=t.index===t.legs.length-1,oldMode=t.mode;delete t.seat;delete t.movement;t.requested=false;
-  if(final){if(t.mode!=='subway')return leave(s,at);t.stage='exit';t.position=[1.5,-2];return 'On the arrival platform. Walk to the station exit.';}
-  const paidArea=isSubwayStop(at);t.index++;t.mode=modeFor(t);t.paidArea=paidArea;
-  // Surface → subway: walk into the station and tap at the gate (a transfer is $0), rather than teleporting onto the platform.
-  if(t.mode==='subway'&&oldMode!=='subway'){t.validated=false;t.stage='entrance';t.position=[0,5.5];return 'Transfer at '+stopById(at)!.name+'. Enter the station and tap at the gate — your transfer is $0 — for '+LINES.find(l=>l.id===t.legs[t.index].line)!.name+'.';}
+  if(final){if(t.mode!=='subway'&&(t.mode!=='bus'||!isPaidStation(at)||t.night))return leave(s,at);t.stage='exit';t.paidArea=true;t.position=t.mode==='bus'?surfaceBoarding('bus').landing:[1.5*stationMirror(t),-2];return 'At the arrival '+(t.mode==='bus'?'bus bay':'platform')+'. Walk to the station exit.';}
+  const paidArea=!t.night&&isPaidStation(at);t.index++;t.mode=modeFor(t);t.paidArea=paidArea;
+  // A transfer already within the station paid area goes straight to the next platform.
+  if(t.mode==='subway'&&oldMode!=='subway'&&!paidArea){t.validated=false;t.stage='entrance';t.position=[0,5.5];return 'Transfer at '+stopById(at)!.name+'. Enter the station and tap at the gate — your transfer is $0 — for '+LINES.find(l=>l.id===t.legs[t.index].line)!.name+'.';}
   t.stage='platform';t.position=[0,4];t.readyAt=now+2500;return 'Transfer at '+stopById(at)!.name+'. Board '+LINES.find(l=>l.id===t.legs[t.index].line)!.name+(paidArea&&t.mode!=='subway'?' · same fare-paid area, no tap needed':'')+'.';
  }
  throw new Error('Choose a transit object.');
@@ -78,9 +89,10 @@ function operate(s:GameState,id:string,now:number){
 export function transitInteriorCommand(s:GameState,c:Command,now:number):string|null{
  if(c.type==='transit'&&c.mode==='playable'){
   if(s.interior)throw new Error('Exit your home or café first.');if(s.journey||s.transit)throw new Error('Finish your journey first.');const from=c.origin?stopById(c.origin):nearestStop(s.position),to=stopById(c.id||'');if(!from)throw new Error('Choose a boarding stop.');if(distance(s.position,from.point)>3)throw new Error('Walk to '+from.name+' first.');if(!to)throw new Error('Choose an exit stop.');const route=transitRoute(from.id,to.id),night=!serviceOpen(s.minutes);delete s.life.restSeat;
-  const t:TransitState={layoutVersion:3,origin:from.id,destination:to.id,legs:route.legs,index:0,stage:'entrance',mode:'subway',night,paid:false,requested:false,readyAt:now+2500,position:[0,5.5]};t.mode=modeFor(t);if(t.mode!=='subway')t.stage='platform';s.transit=t;return transitStatus(t,now);
+  const t:TransitState={layoutVersion:5,origin:from.id,destination:to.id,legs:route.legs,index:0,stage:'entrance',mode:'subway',night,paid:false,requested:false,readyAt:now+2500,position:[0,5.5]};t.mode=modeFor(t);if(t.mode!=='subway')t.stage=t.mode==='bus'&&!night&&isPaidStation(from.id)?'entrance':'platform';s.transit=t;return transitStatus(t,now);
  }
  const t=s.transit;if(!t){if(c.type.startsWith('transit_'))throw new Error('Enter a station or board at a stop first.');return null;}
+ if(c.type==='transit_request'){if(!inVehicle(t)||t.mode==='subway')throw new Error('Stop requests are available aboard buses and streetcars.');if(t.stage==='boarding')throw new Error('Choose a seat or stand before departure.');if(isBusTerminal(t.legs[t.index].to))return 'Doors open automatically at this terminal.';return requestStop(t);}
  if(c.type==='transit_tick'){
   // Pull into every station: riding → brief arrival (doors open). Pass-through stops depart on the next tick; the rider's own stop (destination/transfer) holds for them to get off.
   if(t.stage==='riding'){
@@ -109,4 +121,4 @@ export function transitInteriorCommand(s:GameState,c:Command,now:number):string|
 }
 
 /** Added seat rows must not leave an older save inside furniture or following an obsolete route. */
-export function migrateTransitInterior(s:GameState){const t=s.transit;if(!t||t.layoutVersion===3)return;const layout=transitLayout(t),path=t.movement?.path;const blocked=!insideWalkable(t.position,layout)||path?.some((p,n)=>n>0&&!interiorSegment(path[n-1],p,layout));if(blocked){t.position=inVehicle(t)?[.5,6]:t.stage==='entrance'?[0,5.5]:[0,4];delete t.movement;delete t.seat;}t.layoutVersion=3;}
+export function migrateTransitInterior(s:GameState){const t=s.transit;if(!t)return;for(const leg of t.legs)if(leg.line==='scarborough')leg.line=leg.from==='rouge'||leg.to==='rouge'?'38A':'903';if(t.layoutVersion===5)return;if(t.movement?.object==='door'||t.movement?.object==='board')delete t.movement;if(!t.night&&t.mode==='bus'&&t.stage==='platform'&&!t.paid&&!t.paidArea&&isPaidStation(t.legs[t.index].from)){t.stage='entrance';t.position=[0,5.5];delete t.movement;}const layout=transitLayout(t),path=t.movement?.path;const blocked=!insideWalkable(t.position,layout)||path?.some((p,n)=>n>0&&!interiorSegment(path[n-1],p,layout));if(blocked){t.position=inVehicle(t)?[.5,6]:t.stage==='entrance'?[0,5.5]:[0,4];delete t.movement;delete t.seat;}t.layoutVersion=5;}

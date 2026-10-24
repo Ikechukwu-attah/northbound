@@ -52,15 +52,17 @@ export function cabinSide(kind:VehicleKind,side:number):KitPart[]{
  box(2.84,0,.08,17.8,'#fff4d7',.21);
  return p;
 }
+export const WORLD_DEPTH=480;
 export function platformKit():KitPart[]{
- const p:KitPart[]=[],c=TTC_INTERIOR;
- for(let x=-5.5;x<=3.5;x+=1)for(let z=-6.5;z<=6.5;z+=1)p.push({p:[x,-.03,z],s:[.985,.06,.985],c:(Math.round(x+z)%3===0?'#a5aaa6':'#bdc0b8')});
- for(let z=-6.5;z<6.5;z+=.45){p.push({p:[3.75,.025,z],s:[.65,.06,.42],c:'#eac645'});for(const x of [3.55,3.75,3.95])p.push({p:[x,.06,z],s:[.05,.025,.05],c:'#d1a632'});}
- // Columns sit outside the walkable floor; tiled joints and the red belt repeat the reference.
- for(const z of [-5,1,6]){p.push({p:[-5.72,2.2,z],s:[.45,4.4,.65],c:'#dedbcf'});for(let y=.3;y<4.3;y+=.35){p.push({p:[-5.475,y,z],s:[.015,.018,.65],c:'#a9a99e'});}p.push({p:[-5.72,1.9,z],s:[.48,.35,.68],c:c.red});}
- for(let x=-5.6;x<5.9;x+=.6)for(let y=.25;y<4.3;y+=.5)p.push({p:[x,y,-6.98],s:[.585,.485,.1],c:y>1.5&&y<2.1?c.red:'#dfdbcd'});
- for(const x of [5.25,6.75])p.push({p:[x,-.25,-1],s:[.08,.12,25],c:c.silver,finish:'metal'});
- for(let z=-12;z<12;z+=.8)p.push({p:[6,-.38,z],s:[2.9,.14,.18],c:'#484c49'});
+ const p:KitPart[]=[{p:[-1,-.12,0],s:[10,.24,WORLD_DEPTH],c:'#bdc0b8'},
+ {p:[3.75,.025,0],s:[.65,.06,WORLD_DEPTH],c:TTC_INTERIOR.yellow},
+ {p:[-5.9,2.2,0],s:[.2,4.4,WORLD_DEPTH],c:'#dfdbcd'},
+ {p:[-5.76,1.9,0],s:[.08,.35,WORLD_DEPTH],c:TTC_INTERIOR.red},
+ {p:[6,-.48,0],s:[3.7,.25,WORLD_DEPTH],c:'#303638'}];
+ for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=2){p.push({p:[-1,.008,z],s:[10,.018,.025],c:'#929990'},{p:[6,-.3,z],s:[2.9,.14,.18],c:'#484c49'});}
+ for(const x of [-4,-2,0,2])p.push({p:[x,.008,0],s:[.025,.018,WORLD_DEPTH],c:'#929990'});
+ for(const x of [5.25,6.75])p.push({p:[x,-.2,0],s:[.08,.12,WORLD_DEPTH],c:TTC_INTERIOR.silver,finish:'metal'});
+ for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=12)p.push({p:[-5.65,2.2,z],s:[.45,4.4,.65],c:'#dedbcf'},{p:[-5.65,1.9,z],s:[.48,.35,.68],c:TTC_INTERIOR.red});
  return p;
 }
 /** Platform train, built in car-local coordinates with its boarding door at z=0. */
@@ -70,5 +72,62 @@ export function subwayExterior():KitPart[]{
  for(const side of [-1,1]){box([side*1.42,2.92,0],[.08,.28,19.8],c.red);for(const z of [-8,-3,2,7]){box([side*1.4,1.8,z],[.12,1.35,2.2],c.black);box([side*1.47,1.8,z],[.035,1.1,1.9],'#597b82');box([side*1.43,.85,z],[.08,.85,2.2],c.red);}for(const z of [-9.9,-6.8,-5.6,-4.3,-1.8,1.8,4.5,5.7,9.9])box([side*1.4,1.82,z],[.16,2.25,.22],c.silver);}
  box([0,1.7,-10],[2.8,2.55,.15],c.silver);box([0,2,-10.1],[2.35,1.1,.05],c.black);box([0,1,-10.13],[2.65,.4,.05],c.red);
  for(const x of [-1.1,1.1])for(const z of [-7,7])p.push({p:[x,.12,z],s:[.3,.17,.3],c:c.black,shape:'tube',r:[0,0,Math.PI/2],finish:'metal'});
+ return p;
+}
+
+/** Six connected Toronto Rocket cars, with the playable third car at z=0.
+ * 18-unit cars are joined by two-unit open gangways; both end cabs stay outside
+ * the fixed camera envelope. Environment length is independent of train length. */
+export const TRAIN_SCENERY_OFFSETS=[-40,-20,0,20,40,60];
+export const TRAIN_MIN_Z=-49,TRAIN_MAX_Z=69;
+export const TRAIN_SCENERY_DEPTH=TRAIN_MAX_Z-TRAIN_MIN_Z;
+export const TRAIN_FOG_END=110;
+export function repeatTrainParts(parts:KitPart[],offsets=TRAIN_SCENERY_OFFSETS):KitPart[]{return offsets.flatMap(z=>parts.map(p=>({...p,p:[p.p[0],p.p[1],p.p[2]+z] as [number,number,number]})));}
+export function trainGangways():KitPart[]{
+ const p:KitPart[]=[];
+ for(const offset of TRAIN_SCENERY_OFFSETS.slice(0,-1)){
+  const z=offset+10;
+  p.push({p:[0,-.025,z],s:[2.8,.1,2.1],c:TTC_INTERIOR.floor},{p:[0,3.3,z],s:[2.8,.16,2.1],c:TTC_INTERIOR.black});
+  for(const side of [-1,1]){
+   // End shoulders frame a clear walk-through opening, never a solid end wall.
+   for(const edge of [-1,1])p.push({p:[side*2.2,1.6,z+edge],s:[1.6,3.2,.12],c:TTC_INTERIOR.panel});
+   for(let n=0;n<10;n++)p.push({p:[side*1.46,1.6,z-.9+n*.2],s:[.12,3.2,.1],c:n%2?'#626968':'#343b3b'});
+  }
+ }
+ // End cabs exist, but camera limits/fog keep them out of the riding view.
+ for(const z of [TRAIN_MIN_Z,TRAIN_MAX_Z])p.push({p:[0,1.7,z],s:[6,3.4,.16],c:TTC_INTERIOR.silver});
+ return p;
+}
+/** Details repeat every 72 units so looping never jumps; boundaries stay beyond far clip. */
+export function rideEnvironment(subway:boolean,platformSide:1|-1,atStation:boolean):KitPart[]{
+ const p:KitPart[]=[{p:[0,-.7,0],s:[WORLD_DEPTH,1,WORLD_DEPTH],c:subway?'#303638':'#52595b'}];
+ if(subway){
+  for(const x of [-1.7,1.7])p.push({p:[x,-.12,0],s:[.12,.18,WORLD_DEPTH],c:TTC_INTERIOR.silver,finish:'metal'});
+  for(const side of [-1,1]){
+   const platform=atStation&&side===platformSide;
+   p.push({p:[side*8,2.5,0],s:[.3,7,WORLD_DEPTH],c:platform?'#dad7ca':'#3a4142'});
+   if(platform)p.push({p:[side*5.5,-.09,0],s:[4.7,.2,WORLD_DEPTH],c:'#b2b5ae'},{p:[side*3.35,.04,0],s:[.35,.05,WORLD_DEPTH],c:TTC_INTERIOR.yellow},{p:[side*7.8,1.8,0],s:[.08,.3,WORLD_DEPTH],c:TTC_INTERIOR.red});
+  }
+ }else for(const side of [-1,1])p.push({p:[side*7,-.12,0],s:[5,.3,WORLD_DEPTH],c:'#c5c4b1'},{p:[side*4.6,0,0],s:[.2,.4,WORLD_DEPTH],c:'#dfdfd3'});
+ // Close, high-contrast details make motion readable in both Cutaway and Inside.
+ if(subway){
+  for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=.75)p.push({p:[0,-.24,z],s:[7.2,.18,.2],c:'#171e20'});
+  for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=3)for(const side of [-1,1]){
+   p.push({p:[side*7.72,2.5,z],s:[.28,6,.24],c:'#67777a'});
+   // Lamps are at window height; overhead-only lamps were hidden by the roof.
+   if(z%6===0)p.push({p:[side*7.5,2.25,z],s:[.18,.24,1.5],c:'#fff0bd',finish:'light'},
+    {p:[side*7.52,1.3,z+1.5],s:[.1,1.05,.28],c:'#d2d7c5'});
+  }
+  for(const side of [-1,1])for(const y of [.7,1])p.push({p:[side*7.65,y,0],s:[.08,.06,WORLD_DEPTH],c:'#181f22'});
+ }else{
+  for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=6)for(const side of [-1,1])p.push({p:[side*3.8,-.185,z],s:[.12,.025,3],c:'#f2ecdc'});
+  for(let z=-WORLD_DEPTH/2;z<WORLD_DEPTH/2;z+=12)for(const side of [-1,1]){
+   const n=((z/12)%6+6)%6,h=7+n%3*2;
+   p.push({p:[side*12,h/2,z],s:[6,h,12.1],c:n%2?'#bda183':'#aebbbb'});
+   for(let y=1;y<h;y+=1.5)p.push({p:[side*8.95,y,z],s:[.07,.8,8],c:'#557780'});
+   p.push({p:[side*6,.6,z+3],s:[.25,1.2,.25],c:'#5f7058'},{p:[side*6,2,z+3],s:[1.2,1.5,1.2],c:'#91a16e'},
+    {p:[side*5.3,1.8,z-2],s:[.1,3.6,.1],c:'#484f51'},{p:[side*5.3,3.6,z-2],s:[.6,.14,.3],c:'#ffe6a4',finish:'light'});
+  }
+ }
  return p;
 }
