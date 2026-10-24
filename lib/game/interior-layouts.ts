@@ -1,15 +1,15 @@
 import type {Point} from './world';
 export type HomeTier='room'|'basement'|'apartment'|'two-bedroom';
-export type FurnitureKind='bed'|'stove'|'sink'|'shower'|'toilet'|'sofa'|'desk'|'table'|'wardrobe'|'plant'|'counter'|'register'|'chair'|'worktop';
+export type FurnitureKind='bed'|'stove'|'sink'|'shower'|'toilet'|'sofa'|'desk'|'table'|'wardrobe'|'plant'|'counter'|'register'|'chair'|'worktop'|'reception'|'shelf'|'produce'|'crates';
 export type Furniture={id:string;kind:FurnitureKind;x:number;z:number;width:number;depth:number;use?:Point;label?:string;action?:string;zone?:'bedroom'|'shared'|'bathroom'};
 export type Wall={x:number;z:number;width:number;depth:number;side?:'north'|'south'|'east'|'west'};
 export type Door={id:string;x:number;z:number;width:number;label:string;privacy?:boolean};
-export type HomeLayout={tier:HomeTier|'cafe'|'bank';width:number;depth:number;door:Point;doors:Door[];objects:Furniture[];walls:Wall[];bathroom:{x:number;z:number;width:number;depth:number};palette:{floor:string;wall:string;accent:string}};
-export const LAYOUT_VERSION=2;
+export type HomeLayout={tier:HomeTier|'cafe'|'bank'|'building';width:number;depth:number;door:Point;doors:Door[];objects:Furniture[];walls:Wall[];bathroom:{x:number;z:number;width:number;depth:number};palette:{floor:string;wall:string;accent:string}};
+export const LAYOUT_VERSION=3;
 export function homeTier(type:string):HomeTier{return type==='basement'?'basement':['two-bedroom','roommates','family'].includes(type)?'two-bedroom':type==='apartment'?'apartment':'room'}
 const layouts=new Map<string,HomeLayout>();
-function shell(tier:HomeLayout['tier'],width:number,depth:number):HomeLayout{const w=width/2,d=depth/2;return {tier,width,depth,door:[0,d-1],objects:[],doors:[{id:'exit',x:0,z:d,width:2,label:'Exit to street'},{id:'bathroom-door',x:w-1.9,z:-d+4,width:1.8,label:'Bathroom',privacy:true}],bathroom:{x:w-2.2,z:-d+2,width:4.4,depth:4},walls:[{x:0,z:-d,width,depth:.18,side:'north'},{x:-w,z:0,width:.18,depth,side:'west'},{x:w,z:0,width:.18,depth,side:'east'},{x:-(w+1)/2,z:d,width:w-1,depth:.18,side:'south'},{x:(w+1)/2,z:d,width:w-1,depth:.18,side:'south'},{x:w-4.4,z:-d+2,width:.15,depth:4},{x:w-3.6,z:-d+4,width:1.6,depth:.15},{x:w-.5,z:-d+4,width:1,depth:.15}],palette:{floor:'#cba579',wall:'#e8e0ce',accent:'#708264'}}}
-function bathroom(l:HomeLayout,shower=true){const w=l.width/2,d=l.depth/2;l.objects.push({id:'toilet',kind:'toilet',x:w-1.2,z:-d+1.1,width:.8,depth:1.2,use:[w-1.2,-d+2.4],label:'Use toilet · 5 min',action:'bathroom',zone:'bathroom'});if(shower)l.objects.push({id:'shower',kind:'shower',x:w-3.2,z:-d+1,width:1.35,depth:1.4,use:[w-3.2,-d+2.4],label:'Shower · 15 min',action:'shower',zone:'bathroom'});}
+export function shell(tier:HomeLayout['tier'],width:number,depth:number):HomeLayout{const w=width/2,d=depth/2;return {tier,width,depth,door:[0,d-1],objects:[],doors:[{id:'exit',x:0,z:d,width:2,label:'Exit to street'},{id:'bathroom-door',x:w-1.9,z:-d+4,width:1.8,label:'Bathroom',privacy:true}],bathroom:{x:w-2.2,z:-d+2,width:4.4,depth:4},walls:[{x:0,z:-d,width,depth:.18,side:'north'},{x:-w,z:0,width:.18,depth,side:'west'},{x:w,z:0,width:.18,depth,side:'east'},{x:-(w+1)/2,z:d,width:w-1,depth:.18,side:'south'},{x:(w+1)/2,z:d,width:w-1,depth:.18,side:'south'},{x:w-4.4,z:-d+2,width:.15,depth:4},{x:w-3.6,z:-d+4,width:1.6,depth:.15},{x:w-.5,z:-d+4,width:1,depth:.15}],palette:{floor:'#cba579',wall:'#e8e0ce',accent:'#708264'}}}
+export function bathroom(l:HomeLayout,shower=true){const w=l.width/2,d=l.depth/2;l.objects.push({id:'toilet',kind:'toilet',x:w-1.2,z:-d+1.1,width:.8,depth:1.2,use:[w-1.2,-d+2.4],label:'Use toilet · 5 min',action:'bathroom',zone:'bathroom'});if(shower)l.objects.push({id:'shower',kind:'shower',x:w-3.2,z:-d+1,width:1.35,depth:1.4,use:[w-3.2,-d+2.4],label:'Shower · 15 min',action:'shower',zone:'bathroom'});}
 export function homeLayout(tier:HomeTier):HomeLayout{
  const cached=layouts.get(tier);if(cached)return cached;
  const [width,depth]=tier==='room'?[20,16]:tier==='basement'?[15,12]:tier==='apartment'?[18,14]:[22,16],l=shell(tier,width,depth),w=width/2,d=depth/2;
@@ -50,7 +50,7 @@ export function bankLayout():HomeLayout{
  l.objects=[{id:'teller',kind:'counter',x:-2,z:-5,width:9,depth:1.6,use:[-2,-2.9],label:'Speak to a teller',action:'bank'},
  {id:'atm',kind:'register',x:6.4,z:-4.4,width:1.2,depth:1.2,use:[5.1,-4.4],label:'Use the ATM',action:'bank'},
  {id:'ticket',kind:'register',x:-8.3,z:1,width:.7,depth:1,use:[-7,1],label:'Take a number',action:'bank'},
- {id:'advisor',kind:'desk',x:6,z:2,width:2.4,depth:1.2,use:[4.6,2],label:'See an advisor',action:'bank'},
+ {id:'advisor',kind:'desk',x:6,z:2,width:2.4,depth:1.2,use:[4.3,2],label:'See an advisor',action:'bank'},
  {id:'seat-a',kind:'chair',x:-5.5,z:4.6,width:.9,depth:.9},{id:'seat-b',kind:'chair',x:-3,z:4.6,width:.9,depth:.9},
  {id:'table-a',kind:'table',x:-4.3,z:5.8,width:2.6,depth:1.2},{id:'plant',kind:'plant',x:8.4,z:5,width:.8,depth:.8}];
  bathroom(l,false);layouts.set('bank',l);return l;

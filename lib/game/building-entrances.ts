@@ -13,3 +13,5 @@ export function onHomeApproach(p:Point,home:Pick<Spot,'x'|'z'>){
 }
 /** Keep the roadside bench beside, rather than across, a home's entrance path. */
 export const restBayX=(cellX:number,homeCell:boolean)=>cellX*24+12+(homeCell?3.2:0);
+
+export const hasBuildingDoor=(p:Pick<Spot,'kind'|'id'>)=>p.kind!=='park'&&!['bluffs','waterfront','humber','mel'].includes(p.id);

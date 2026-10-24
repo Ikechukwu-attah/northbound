@@ -47,7 +47,7 @@ test('Toronto date-based solar times match mid October and handle DST',()=>{
 });
 test('critical needs force rest and limit nonessential actions while washrooms remain accessible',()=>{
  let s=at(fresh(),'queen');s.needs.energy=0;for(const type of ['walk','wait','talk','apply'])assert.throws(()=>act(s,type,'home'),/must rest/);s=finish(act(s,'rest'));assert.ok(s.needs.energy>=20);
- s.needs.bladder=0;for(const type of ['talk','wait','apply','view_home','groceries'])assert.throws(()=>act(s,type,'room'),/bathroom/);s=act(s,'bathroom');assert.ok(s.needs.bladder>90);
+ s.needs.bladder=0;for(const type of ['talk','wait','apply','view_home','groceries'])assert.throws(()=>act(s,type,'room'),/bathroom/);s=go(s,'queen');s=act(s,'bathroom');assert.ok(s.needs.bladder>90);
  s=act(s,'exit_home');s.position=t.stopById('sheppard').point;s.location='';assert.ok(l.washroomHere(s));s=act(s,'bathroom');s.position=t.stopById('union').point;assert.equal(l.washroomHere(s),false);
  s=at(s,'stc');s.minutes=600;assert.ok(l.washroomHere(s));
 });
