@@ -5,7 +5,7 @@ export type Furniture={id:string;kind:FurnitureKind;x:number;z:number;width:numb
 export type Wall={x:number;z:number;width:number;depth:number;side?:'north'|'south'|'east'|'west'};
 export type Door={id:string;x:number;z:number;width:number;label:string;privacy?:boolean};
 export type HomeLayout={tier:HomeTier|'cafe'|'bank'|'building';width:number;depth:number;door:Point;doors:Door[];objects:Furniture[];walls:Wall[];bathroom:{x:number;z:number;width:number;depth:number};palette:{floor:string;wall:string;accent:string}};
-export const LAYOUT_VERSION=3;
+export const LAYOUT_VERSION=4;
 export function homeTier(type:string):HomeTier{return type==='basement'?'basement':['two-bedroom','roommates','family'].includes(type)?'two-bedroom':type==='apartment'?'apartment':'room'}
 const layouts=new Map<string,HomeLayout>();
 export function shell(tier:HomeLayout['tier'],width:number,depth:number):HomeLayout{const w=width/2,d=depth/2;return {tier,width,depth,door:[0,d-1],objects:[],doors:[{id:'exit',x:0,z:d,width:2,label:'Exit to street'},{id:'bathroom-door',x:w-1.9,z:-d+4,width:1.8,label:'Bathroom',privacy:true}],bathroom:{x:w-2.2,z:-d+2,width:4.4,depth:4},walls:[{x:0,z:-d,width,depth:.18,side:'north'},{x:-w,z:0,width:.18,depth,side:'west'},{x:w,z:0,width:.18,depth,side:'east'},{x:-(w+1)/2,z:d,width:w-1,depth:.18,side:'south'},{x:(w+1)/2,z:d,width:w-1,depth:.18,side:'south'},{x:w-4.4,z:-d+2,width:.15,depth:4},{x:w-3.6,z:-d+4,width:1.6,depth:.15},{x:w-.5,z:-d+4,width:1,depth:.15}],palette:{floor:'#cba579',wall:'#e8e0ce',accent:'#708264'}}}

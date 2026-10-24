@@ -1,6 +1,6 @@
 import {buildingApproachAt} from './building-catalog';
 import {COMMUNITY_PLACES} from './district-content';
-import {isWalkable} from './navigation';
+import {isWalkable,segmentWalkable} from './navigation';
 import {homeEntrance,onHomeApproach,hasBuildingDoor} from './building-entrances';
 import {DISTRICTS,type DistrictId,type Spot} from './data';
 export type Point=[number,number];
@@ -74,7 +74,7 @@ export function walkingPath(from:Point,to:Point):Point[]{
  };
  for(const a of corners(from))for(const b of corners(to))candidates.push([from,a,[b[0],a[1]],b,to]);
  candidates.sort((a,b)=>pathLength(a)-pathLength(b));
- const route=candidates.find(path=>path.every(p=>isWalkable(p)));if(!route)throw new Error('No clear sidewalk route is available.');return route.filter((p,i,a)=>!i||distance(p,a[i-1])>.001);
+ const route=candidates.find(path=>path.every((p,i)=>isWalkable(p)&&(!i||segmentWalkable(path[i-1],p))));if(!route)throw new Error('No clear sidewalk route is available.');return route.filter((p,i,a)=>!i||distance(p,a[i-1])>.001);
 }
 export const pathLength=(path:Point[])=>path.reduce((sum,p,i)=>sum+(i?distance(path[i-1],p):0),0);
 export function pointAlong(path:Point[],fraction:number):Point{if(fraction>=1)return path[path.length-1];if(fraction<=0)return path[0];let remain=pathLength(path)*Math.max(0,Math.min(1,fraction));for(let i=1;i<path.length;i++){const len=distance(path[i-1],path[i]);if(remain<=len){const t=len?remain/len:0;return [path[i-1][0]+(path[i][0]-path[i-1][0])*t,path[i-1][1]+(path[i][1]-path[i-1][1])*t];}remain-=len;}return path[path.length-1];}

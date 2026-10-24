@@ -1,4 +1,5 @@
 'use client';
+import {CITY_NAME_HEIGHT} from '@/lib/game/city-scale';
 import {useFrame,useThree} from '@react-three/fiber';
 import type {RefObject} from 'react';
 import * as THREE from 'three';
@@ -15,7 +16,7 @@ export function ProjectedLabels({refs,spots,selected,avatar}:{refs:LabelRefs;spo
  useFrame(()=>{
   if(!avatar.current||!refs.player)return;
   const project=(x:number,y:number,z:number)=>{const p=new THREE.Vector3(x,y,z).project(camera);return {x:(p.x+1)*size.width/2,y:(1-p.y)*size.height/2,visible:p.z>=-1&&p.z<=1};};
-  const p=avatar.current.position;const anchor=project(p.x,p.y+4.4,p.z);const pw=refs.player.offsetWidth,ph=refs.player.offsetHeight;
+  const p=avatar.current.position;const anchor=project(p.x,p.y+CITY_NAME_HEIGHT,p.z);const pw=refs.player.offsetWidth,ph=refs.player.offsetHeight;
   const playerBox={x:anchor.x-pw/2,y:anchor.y-ph/2,width:pw,height:ph};
   const candidates:LabelCandidate[]=[];
   for(const s of spots){const el=refs.places.get(s.id);if(!el)continue;const a=project(s.x,s.id==='cn'?10:s.kind==='park'?1:6.5,s.z);if(!a.visible)continue;const width=el.offsetWidth,height=el.offsetHeight;candidates.push({id:s.id,x:a.x-width/2,y:a.y-height/2,width,height,priority:s.id===selected?1:0});}

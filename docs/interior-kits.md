@@ -49,6 +49,6 @@ On a moving bus or streetcar, the red **Request stop** control works from a seat
 or while walking. Terminal destinations display automatic door-opening guidance.
 
 Validation: `node --test tests/*.test.cjs` and TypeScript. The building suite checks
-all 899 generated addresses within the playable grid, all named entrances,
+all 856 generated addresses within the playable grid, all named entrances,
 furniture reachability, save/reload, return paths and stop requests. Rendered
 desktop/mobile QA still requires a WebGL-capable browser.
