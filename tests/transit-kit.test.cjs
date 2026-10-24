@@ -13,3 +13,7 @@ test('bus boarding hotspot meets the actual front doorway and keeps the approach
  // The entry centre must be empty across the curb-side shell, not just have a black decal.
  assert.ok(!open.some(p=>p.shape==='box'&&Math.abs(p.p[0]+.60)<p.s[0]/2&&Math.abs(p.p[1]-.9)<p.s[1]/2&&Math.abs(p.p[2]-2.13)<p.s[2]/2));
 });
+test('continuous train scenery has no visible finite end within the supported cameras',()=>{
+ const half=kit.TRAIN_SCENERY_DEPTH/2,cameraDistance=Math.hypot(16,20,22);assert.ok(half>150+cameraDistance);assert.ok(kit.TRAIN_FOG_END<half-cameraDistance);
+ const parts=kit.repeatTrainParts(kit.cabinFittings('subway'));assert.ok(parts.length<5000);assert.ok(parts.some(p=>p.p[2]<-170));assert.ok(parts.some(p=>p.p[2]>170));
+});
