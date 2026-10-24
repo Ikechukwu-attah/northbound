@@ -1,3 +1,4 @@
+import {denseBlock} from './urban-form';
 import {restBayX,hasBuildingDoor} from './building-entrances';
 import {BLOCK,PLACES,districtAt,type Point} from './world';
 import {districtArterials} from './geo';
@@ -59,9 +60,9 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
  const box=(x:number,y:number,z:number,w:number,h:number,d:number,c:string,r=0)=>out.boxes.push({p:[x,y,z],s:[w,h,d],c,r});
  const tree=(x:number,z:number,seed:number)=>{box(x,1.1,z,.17,2,.17,'#705c43');out.trees.push({p:[x,2.5,z],s:[1,1.3,1],c:['#7e9e60','#bb954d','#8aab66'][seed%3]});};
  const nodes=new Set<string>();
- for(const [cx,cz]of cells){if(cz>=0)continue;const x=cx*BLOCK,z=cz*BLOCK,seed=Math.abs(cx*71+cz*43),district=districtAt([x+12,z+12]),special=PLACES.find(p=>Math.floor(p.x/24)===cx&&Math.floor(p.z/24)===cz);const dense=district==='toronto'||district==='north-york';
+ for(const [cx,cz]of cells){if(cz>=0)continue;const x=cx*BLOCK,z=cz*BLOCK,seed=Math.abs(cx*71+cz*43),district=districtAt([x+12,z+12]),special=PLACES.find(p=>Math.floor(p.x/24)===cx&&Math.floor(p.z/24)===cz);const dense=denseBlock(district,cx,cz);
   // Building kit (axis-aligned boxes; the instancer only rotates on Y). Neighbours differ via seed.
-  const pal=PALETTES[district]||PALETTES.toronto,wall=(i:number)=>pal[(seed+i*2)%pal.length],roof=(i:number)=>ROOFS[(seed+i)%ROOFS.length];
+  const pal=PALETTES[district]||PALETTES.toronto,wall=(i:number)=>pal[Math.floor(seed+i*2)%pal.length],roof=(i:number)=>ROOFS[Math.floor(seed+i)%ROOFS.length];
   const win=(s:number,glass=false)=>lightsOn?((seed+Math.round(s*7))%5<2?'#ffe3a1':glass?'#3b4a4c':'#36423f'):glass?((seed+Math.round(s))%3?'#9fc2c6':'#bad4d1'):'#3e616a';
   const roofKit=(bx:number,bz:number,w:number,d:number,h:number,s:number)=>{box(bx-w/4,h+.55,bz+d/6,1.5,.7,1.5,'#8f9088');box(bx+w/4,h+.95,bz-d/6,.85,1.2,.85,'#b7ac98');if(s%2)box(bx,h+.5,bz-d/4,2.2,.3,1.4,'#6d6f68');if(s%3===0){box(bx-w/5,h+.35,bz+d/4,2,.1,2,'#7c5a44');box(bx-w/5+.6,h+.58,bz+d/4,.5,.4,.5,'#8aa06a');}};
   const shopRow=(bx:number,bz:number,s:number)=>{const w=11,d=9,storeys=2+s%2,h=storeys*2.3+.9,c=wall(s);box(bx,h/2+.15,bz,w,h,d,c);box(bx,h+.3,bz,w+.3,.5,d+.3,'#d8cdb6');box(bx,1.15,bz+d/2+.04,w-1,1.9,.07,win(0,true));box(bx,2.4,bz+d/2+.08,w-.4,.55,.14,['#c2584a','#2f6d55','#d2a24e','#466a8a','#9a4e7a'][s%5]);box(bx,1.95,bz+d/2+.55,w-1.2,.08,.9,['#b8503f','#2f6d55','#cf9a4b','#3f6f8a'][s%4]);for(let f=1;f<storeys;f++)for(let a=-w/2+1.3;a<w/2-1;a+=2)box(bx+a,1.1+f*2.3+.5,bz+d/2+.05,1,1.1,.05,win(a+f));box(bx-w/2+1.1,1,bz+d/2+.06,1,1.7,.08,'#3a4f49');roofKit(bx,bz,w,d,h,s);};
@@ -77,7 +78,7 @@ export function makeRoadTiles(cells:Point[],lightsOn=false):TileData{
   if(special){box(x+12,.12,z+16.8,10,.08,3.8,'#dfcbaa');tree(x+7,z+7,seed);tree(x+17,z+7,seed+1);}
   else if(park){box(x+12,.12,z+12,1.5,.06,12,'#d7c49d');for(const [a,b]of [[8,8],[16,9],[17,16],[8,16]])tree(x+a,z+b,seed+a);box(x+15,.6,z+15,2,.15,.7,'#a17b51');box(x+15,1,z+14.7,2,.6,.12,'#b58e61');}
   else if(parking){for(let a=8;a<18;a+=2.4){box(x+a,.095,z+9,.08,.025,3.3,'#f1e5cb');box(x+a,.095,z+16,.08,.025,3.3,'#f1e5cb');}box(x+12,.095,z+7.4,11,.025,.08,'#f1e5cb');box(x+12,.095,z+17.6,11,.025,.08,'#f1e5cb');for(const a of [9,14]){box(x+a,.5,z+9,1.2,.65,2.4,a===9?'#a25543':'#c3c8bd');box(x+a,.95,z+9,1.05,.45,1.3,'#365660');}if(!dense){const pc=wall(3);box(x+12,1.7,z+11.8,12,3.1,3.4,pc);box(x+12,3.35,z+11.8,12.3,.4,3.7,'#d8cdb6');for(let a=-4.5;a<5;a+=2.2)box(x+12+a,1.5,z+13.4,1.6,1.4,.06,win(a,true));box(x+5.5,3.6,z+17.6,.4,3,.4,'#8a8f8c');box(x+5.5,5,z+17.6,2.1,1,.12,['#c2584a','#466a8a','#2f6d55'][seed%3]);}tree(x+18,z+12,seed);}
-  else if(dense){if(district==='toronto'){seed%4===0?tower(x+12,z+12,seed):seed%4===1?stone(x+12,z+12,seed):shopRow(x+12,z+12,seed);box(x+12,.105,z+16.5,12,.05,1.6,'#4a4f4d');}else{seed%3===0?slab(x+12,z+12,seed):tower(x+12,z+12,seed);}}
+  else if(dense){if(district==='toronto'||district==='scarborough'){seed%4===0?tower(x+12,z+12,seed):seed%4===1?stone(x+12,z+12,seed):shopRow(x+12,z+12,seed);box(x+12,.105,z+16.5,12,.05,1.6,'#4a4f4d');}else{seed%3===0?slab(x+12,z+12,seed):tower(x+12,z+12,seed);}}
   else {if(seed%6===0)slab(x+12,z+12,seed);else{for(const [hx,hz]of [[8.5,8.5],[15.5,8.5],[8.5,14.2],[15.5,14.2]] as const)house(x+hx,z+hz,seed+hx+hz);for(const dx of [8.5,15.5])box(x+dx,.1,z+12,1.6,.06,5,'#ccbfa6');}}
   const benchX=restBayX(cx,PLACES.some(p=>hasBuildingDoor(p)&&Math.floor(p.x/24)===cx&&Math.floor(p.z/24)===cz));
   // Recessed rest bay: the seat and its occupant leave both through lanes open.

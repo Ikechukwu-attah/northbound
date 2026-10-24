@@ -32,6 +32,8 @@ export function cabinFittings(kind:VehicleKind):KitPart[]{
   for(const edge of [-.51,.51])tube(at(edge,.97,-.1),.95,.025,c.silver,[Math.PI/2,0,seat.rotation]);
   if(seat.raised)box([seat.x,.09,seat.z],[1.4,.18,1.4],c.black);
  }
+ // Seat cushions match the human rig's chair height; poles and shell keep full height.
+ for(const part of p){part.p[1]*=.75;part.s[1]*=.75;}
  for(const [x,z]of TRANSIT_POLES){tube([x,1.7,z],3.4,.035);tube([x,.06,z],.1,.09,c.silver);if(kind==='subway')tube([x,1.45,z],.75,.05,c.grip);}
  for(const x of [-1.45,1.45]){tube([x,2.8,0],16.5,.04,rail,[Math.PI/2,0,0]);for(const z of [-6,-3,0,3,6]){tube([x,3.08,z],.55,.025,c.silver);}}
  // Door threshold and priority-bay floor markings.
@@ -131,3 +133,5 @@ export function rideEnvironment(subway:boolean,platformSide:1|-1,atStation:boole
  }
  return p;
 }
+
+export function transitSeatPose(kind:VehicleKind,point:[number,number]){const seat=transitSeats(kind).find(s=>s.x===point[0]&&s.z===point[1]);return {position:[point[0],(seat?.raised||0)*.75,point[1]] as [number,number,number],rotation:seat?.rotation||0,surface:.56};}

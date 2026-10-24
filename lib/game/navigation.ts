@@ -1,3 +1,5 @@
+import {communityBoards,streetHosts} from './street-life';
+import {streetATMs} from './atms';
 import {buildingApproachSurface} from './building-catalog';
 import {peopleAt,personAt} from './schedules';
 import {BLOCK,BOUNDS,PLACES,PERSON_PLACES,placeById,distance,sidewalk,inBounds,pointAlong,pathLength,onSidewalk,homeApproachAt,type Point} from './world';
@@ -31,6 +33,8 @@ export function navSurface(p:Point,radius=PERSON_RADIUS):'sidewalk'|'crossing'|'
 export function staticObstacles(p:Point){const cx=Math.floor(p[0]/24),cz=Math.floor(p[1]/24),key=cx+','+cz;let result=obstacles.get(key);if(result)return result;
  const cells:Point[]=[];for(let x=cx-1;x<=cx+1;x++)for(let z=cz-1;z<=cz+1;z++)if(z<0)cells.push([x,z]);
  result=makeRoadTiles(cells).boxes.filter(b=>!b.seat&&b.p[1]-b.s[1]/2<2&&b.p[1]+b.s[1]/2>.35).map(b=>({x:b.p[0],z:b.p[2],halfX:b.s[0]/2,halfZ:b.s[2]/2}));
+ for(const b of communityBoards())if(distance(b.point,p)<48)result.push({x:b.point[0],z:b.point[1],halfX:.9,halfZ:.1});
+ for(const a of streetATMs())if(distance(a.point,p)<48)result.push({x:a.point[0],z:a.point[1],halfX:.425,halfZ:.3});
  // Destination buildings, cafe furniture, and station props use the same offsets as their renderer.
  for(const s of PLACES.filter(s=>Math.abs(s.x-p[0])<48&&Math.abs(s.z-p[1])<48)){
   if(s.kind!=='park')result.push({x:s.x,z:s.z,halfX:s.kind==='landmark'?4.5:4.3,halfZ:hasBuildingDoor(s)?(s.id==='cn'?3:2.5):4.4});
@@ -55,7 +59,8 @@ export function lanePoint(path:Point[],fraction:number):Point{
 export type CrowdActor={id:string;path:Point[];progress:number;forward:boolean;wait:number;position:Point;heading:number;moving:boolean;yielding?:string};
 export function clearOfPeople(p:Point,people:Point[],gap=PERSON_RADIUS*2+.04){return people.every(q=>distance(p,q)>=gap);}
 export const namedPosition=(id:string):Point=>{const p=placeById(PERSON_PLACES[id])!;return [p.x+2,p.z+5.8];};
-export const scheduledPositions=(minutes:number):Point[]=>peopleAt(minutes).map(p=>{const spot=placeById(p.place)!;return [spot.x+2,spot.z+5.8];});
+export const scheduledPositions=(minutes:number):Point[]=>peopleAt(minutes).map(p=>{const spot=placeById(p.place)!;return [spot.x+2,spot.z+5.8] as Point;});
+export const publicPeoplePositions=(minutes:number):Point[]=>[...scheduledPositions(minutes),...streetHosts(minutes).map(b=>b.person)];
 /** Swept personal space, including recovery if an old save starts with an overlap. */
 export function peopleSegmentClear(a:Point,b:Point,people:Point[],gap=.68){
  const dx=b[0]-a[0],dz=b[1]-a[1],len=dx*dx+dz*dz;
@@ -84,7 +89,7 @@ export function passingPoint(current:Point,path:Point[],fraction:number,people:P
  return scored[0]?.q||current;
 }
 export function stepCrowd(actors:CrowdActor[],dt:number,player:Point,playerAhead:Point=player,minutes=540){
- dt=Math.min(.06,dt);const named=scheduledPositions(minutes);
+ dt=Math.min(.06,dt);const named=publicPeoplePositions(minutes);
  for(const a of actors){a.moving=false;const people=[player,...named,...actors.filter(b=>b!==a).map(b=>b.position)];
   if(!clearOfPeople(a.position,people)){
    const candidates=Array.from({length:16},(_,i):Point=>[a.position[0]+Math.cos(i*Math.PI/8)*dt*1.5,a.position[1]+Math.sin(i*Math.PI/8)*dt*1.5]);
