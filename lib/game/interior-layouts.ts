@@ -1,6 +1,6 @@
 import type {Point} from './world';
 export type HomeTier='room'|'basement'|'apartment'|'two-bedroom';
-export type FurnitureKind='bed'|'stove'|'sink'|'shower'|'toilet'|'sofa'|'desk'|'table'|'wardrobe'|'plant'|'counter'|'register'|'chair'|'worktop'|'reception'|'shelf'|'produce'|'crates';
+export type FurnitureKind='bed'|'stove'|'sink'|'shower'|'toilet'|'sofa'|'desk'|'table'|'wardrobe'|'plant'|'counter'|'register'|'chair'|'worktop'|'reception'|'shelf'|'produce'|'crates'|'electronics'|'clothing';
 export type Furniture={id:string;kind:FurnitureKind;x:number;z:number;width:number;depth:number;use?:Point;label?:string;action?:string;zone?:'bedroom'|'shared'|'bathroom'};
 export type Wall={x:number;z:number;width:number;depth:number;side?:'north'|'south'|'east'|'west'};
 export type Door={id:string;x:number;z:number;width:number;label:string;privacy?:boolean};
