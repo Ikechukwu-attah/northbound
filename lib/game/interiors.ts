@@ -1,3 +1,4 @@
+import {WALMART_ID,storeCashiers} from './supercentre';
 import {buildingById} from './building-catalog';
 import {buildingLayout} from './building-layouts';
 import {ROLES} from './life';
@@ -111,7 +112,7 @@ function cafeObject(s:GameState,id:string,mode:string|undefined,now:number){
 export function sameInterior(a:GameState,b:GameState){if(!a.interior||!b.interior)return !a.interior&&!b.interior;if(a.interior.place!==b.interior.place||(a.interior.kind||'home')!==(b.interior.kind||'home'))return false;return isPublicInterior(a.interior)||!!a.social?.householdId&&a.social.householdId===b.social?.householdId;}
 
 /** Staff and queued customers reserve clear floor footprints as well as visible bodies. */
-export function interiorNavigation(i:InteriorState,minutes:number):HomeLayout{const l=interiorLayout(i),hour=minutes%1440/60;let people:Point[]=[];if(i.kind==='cafe'&&(hour>=7&&hour<20||!!i.order))people=[[-3,-6.65],[3.4,-6.65],...Array.from({length:i.queue||0},(_,n)=>[-7.7,-2.5+n*1.4] as Point)];else if(i.kind==='bank')people=[[-2,-6.4],[7.3,2]];else if(i.kind==='building'&&buildingById(i.place)?.style!=='residence')people=[[-4,-6.9]];else if(!isPublicInterior(i)&&i.tier==='room'&&hour>=7&&hour<23)people=[[2.8,-6]];return {...l,walls:[...l.walls,...people.map(([x,z])=>({x,z,width:.7,depth:.7}))]};}
+export function interiorNavigation(i:InteriorState,minutes:number):HomeLayout{const l=interiorLayout(i),hour=minutes%1440/60;let people:Point[]=[];if(i.kind==='cafe'&&(hour>=7&&hour<20||!!i.order))people=[[-3,-6.65],[3.4,-6.65],...Array.from({length:i.queue||0},(_,n)=>[-7.7,-2.5+n*1.4] as Point)];else if(i.kind==='bank')people=[[-2,-6.4],[7.3,2]];else if(i.place===WALMART_ID)people=storeCashiers();else if(i.kind==='building'&&buildingById(i.place)?.style!=='residence')people=[[-4,-6.9]];else if(!isPublicInterior(i)&&i.tier==='room'&&hour>=7&&hour<23)people=[[2.8,-6]];return {...l,walls:[...l.walls,...people.map(([x,z])=>({x,z,width:.7,depth:.7}))]};}
 
 export function cafeStatus(i:InteriorState,now=Date.now()){
  if(i.movement)return 'Walking to '+(i.movement.object==='register'?'the till':i.movement.object||'your spot')+'…';
@@ -124,7 +125,7 @@ export function cafeStatus(i:InteriorState,now=Date.now()){
 export function layoutForBuilding(id:string):HomeLayout{
  const b=buildingById(id);if(!b)throw new Error('Unknown building.');
  const tier=id.startsWith('listing-')?id.slice(8):undefined;
- return buildingLayout({style:b.style,seed:b.seed,tier,extras:ROLES.some(r=>r.place===id)&&!['cafe','office','warehouse'].includes(b.style)?[{id:'workplace',kind:'desk',x:8,z:-1,width:2,depth:1.2,use:[8,.8],label:'Start scheduled shift',action:'work'}]:undefined});
+ return buildingLayout({style:b.style,format:id===WALMART_ID?'supercentre':undefined,seed:b.seed,tier,extras:ROLES.some(r=>r.place===id)&&!['cafe','office','warehouse'].includes(b.style)?[{id:'workplace',kind:'desk',x:8,z:-1,width:2,depth:1.2,use:[8,.8],label:'Start scheduled shift',action:'work'}]:undefined});
 }
 function buildingObject(s:GameState,id:string,now:number){
  const i=s.interior!,b=buildingById(i.place)!,o=interiorLayout(i).objects.find(o=>o.id===id)!;

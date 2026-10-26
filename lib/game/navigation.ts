@@ -5,7 +5,7 @@ import {peopleAt,personAt} from './schedules';
 import {BLOCK,BOUNDS,PLACES,PERSON_PLACES,placeById,distance,sidewalk,inBounds,pointAlong,pathLength,onSidewalk,homeApproachAt,type Point} from './world';
 import {makeRoadTiles,roadAt} from './roads';
 import {STOPS,LINES} from './transit';
-import {homeEntrance,restBayX,hasBuildingDoor} from './building-entrances';
+import {homeEntrance,restBayX,hasBuildingDoor,buildingDepth} from './building-entrances';
 export const PERSON_RADIUS=.32, WALK_HALF_WIDTH=.725;
 // Only surface (bus/streetcar) stops have a street waiting shelter; subway stations are entrances.
 // world → navigation → transit → world is a shared runtime dependency cycle.
@@ -26,7 +26,7 @@ export function navSurface(p:Point,radius=PERSON_RADIUS):'sidewalk'|'crossing'|'
  }
  if(buildingApproachSurface(p,radius))return 'plaza';
  const cx=Math.floor(p[0]/24),cz=Math.floor(p[1]/24),bx=restBayX(cx,PLACES.some(s=>hasBuildingDoor(s)&&Math.floor(s.x/24)===cx&&Math.floor(s.z/24)===cz)),bz=cz*24;
- if(PLACES.some(s=>hasBuildingDoor(s)&&Math.abs(p[0]-s.x)<homeEntrance(s).width/2-radius&&p[1]>=s.z+2.7+radius&&p[1]<=s.z+7.7-radius))return 'plaza';
+ if(PLACES.some(s=>hasBuildingDoor(s)&&Math.abs(p[0]-s.x)<homeEntrance(s).width/2-radius&&p[1]>=s.z+buildingDepth(s)/2+.2+radius&&p[1]<=s.z+7.7-radius))return 'plaza';
  if(Math.abs(p[0]-bx)<=1.1-radius&&p[1]>=bz+16.95+radius&&p[1]<=bz+19.35-radius)return 'plaza';
  return PLACES.some(s=>Math.abs(p[0]-s.x)<4.8-radius&&p[1]>=s.z+5.2+radius&&p[1]<=s.z+7.7-radius)?'plaza':null;
 }
@@ -37,7 +37,7 @@ export function staticObstacles(p:Point){const cx=Math.floor(p[0]/24),cz=Math.fl
  for(const a of streetATMs())if(distance(a.point,p)<48)result.push({x:a.point[0],z:a.point[1],halfX:.425,halfZ:.3});
  // Destination buildings, cafe furniture, and station props use the same offsets as their renderer.
  for(const s of PLACES.filter(s=>Math.abs(s.x-p[0])<48&&Math.abs(s.z-p[1])<48)){
-  if(s.kind!=='park')result.push({x:s.x,z:s.z,halfX:s.kind==='landmark'?4.5:4.3,halfZ:hasBuildingDoor(s)?(s.id==='cn'?3:2.5):4.4});
+  if(s.kind!=='park')result.push({x:s.x,z:s.z,halfX:s.id==='sc-walmart'?6.2:s.kind==='landmark'?4.5:4.3,halfZ:hasBuildingDoor(s)?(s.id==='cn'?3:buildingDepth(s)/2):4.4});
   if(s.kind==='cafe')result.push({x:s.x+5.4,z:s.z+1,halfX:1.25,halfZ:1.25});
  }
  for(const s of STOPS.filter(s=>getShelterStops().has(s.id)&&distance(s.point,p)<48)){result.push({x:s.point[0]+1.5,z:s.point[1]-1.5,halfX:.1,halfZ:.1},{x:s.point[0]+3.1,z:s.point[1]-1.5,halfX:1.1,halfZ:.2});}

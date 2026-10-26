@@ -60,7 +60,13 @@ export function snapPoint(p:Point):Point{const x=Math.max(BOUNDS.west,Math.min(B
 /** Shortest rectilinear route on the connected sidewalk grid, including crossings. */
 export function walkingPath(from:Point,to:Point):Point[]{
  const fb=!onSidewalk(from)?buildingApproachAt(from):undefined,tb=!onSidewalk(to)?buildingApproachAt(to):undefined;
- if(fb||tb){if(fb&&tb&&distance(fb.approach[0],tb.approach[0])<.01)return [from,to];return [...(fb?[from]:[]),...walkingPath(fb?fb.approach[0]:from,tb?tb.approach[0]:to),...(tb?[to]:[])].filter((p,i,a)=>!i||distance(p,a[i-1])>.001);}
+ if(fb||tb){
+  // An entrance must connect to the route grid; reject malformed legacy links
+  // instead of recursively trying to route to the same isolated approach.
+  if(fb&&!onSidewalk(fb.approach[0])||tb&&!onSidewalk(tb.approach[0]))throw new Error('This doorway has no connected sidewalk. Choose another entrance.');
+  if(fb&&tb&&distance(fb.approach[0],tb.approach[0])<.01&&segmentWalkable(from,to))return [from,to];
+  return [...(fb?[from]:[]),...walkingPath(fb?fb.approach[0]:from,tb?tb.approach[0]:to),...(tb?[to]:[])].filter((p,i,a)=>!i||distance(p,a[i-1])>.001);
+ }
  const fromHome=!onSidewalk(from)?homeApproachAt(from):undefined,toHome=!onSidewalk(to)?homeApproachAt(to):undefined;
  if(fromHome||toHome){
   if(fromHome?.id===toHome?.id)return [from,to];

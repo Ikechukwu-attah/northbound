@@ -10,7 +10,7 @@ export function namedBuilding(id:string):BuildingEntry|undefined{
  const p=PLACES.find(p=>p.id===id);if(!p||!hasBuildingDoor(p))return;
  const style:BuildingStyle=p.kind==='home'?'residence':p.kind==='cafe'?'cafe':id==='bank'?'bank':p.kind==='library'?'library':id==='islington'?'warehouse':p.kind==='market'?'grocery':['nycentre','cn'].includes(id)?'office':['health','servicecanada','housing','airport'].includes(id)?'service':id==='phone'?'retail':id==='college'||id==='eycentre'?'community':'office';
  // Named destinations retain their established public forecourt access.
- const landing=entrance(p);return {id,name:p.name,district:p.district,style,seed:buildingSeed(id),door:[p.x,p.z+(p.kind==='home'?2.56:2.56)],landing,approach:[homeEntrance(p).street,landing],rotation:0,named:true};
+ const landing=entrance(p);return {id,name:p.name,district:p.district,style,seed:buildingSeed(id),door:homeEntrance(p).door,landing,approach:[homeEntrance(p).street,landing],rotation:0,named:true};
 }
 const cache=new Map<string,BuildingEntry[]>();
 /** Same deterministic block recipe as the exterior kit; no thousands-entry global registry. */
@@ -21,10 +21,10 @@ export function streetBuildings(cx:number,cz:number):BuildingEntry[]{
  if(z<0&&x+12>=BOUNDS.west&&x+12<=BOUNDS.east&&z+12>=BOUNDS.north&&z+19<=BOUNDS.south&&!PLACES.some(p=>Math.floor(p.x/24)===cx&&Math.floor(p.z/24)===cz)&&seed%9!==0){
   const add=(bx:number,bz:number,w:number,style:BuildingStyle,side=1,house=false)=>{
    const id=`building:${cx}:${cz}:${result.length}`,door:Point=[bx+side*(w/2+.06),bz],landing:Point=house?[x+12,bz]:[bx+side*(w/2+.85),bz];
-   const approach:Point[]=house?[[x+12,z+5],landing]:[[x+(side>0?19:5),bz],landing];
+   const approach:Point[]=house?[[x+12,z+19],landing]:[[x+19,bz],landing];
    result.push({id,name:`${style==='residence'?'Residence':style==='office'?'Neighbourhood office':style==='clinic'?'Community clinic':style==='warehouse'?'Local warehouse':style==='library'?'Reading room':style==='grocery'?'Neighbourhood grocery':'Local shop'} · ${Math.abs(cx)*100+Math.abs(cz)*4+result.length+1}`,district,style,seed:buildingSeed(id),door,landing,approach,rotation:side*Math.PI/2,named:false});
   };
-  for(const f of blockForms(cx,cz,district))add(f.x,f.z,f.width,f.style,f.side,f.house);
+  for(const f of blockForms(cx,cz,district))add(f.x,f.z,f.width,f.style,f.house?f.side:1,f.house);
  }
  if(cache.size>1000)cache.clear();cache.set(key,result);return result;
 }

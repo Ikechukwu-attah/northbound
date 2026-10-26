@@ -24,7 +24,7 @@ const fictionalHomes:Record<string,{near:string;offset:LonLat}>={
  'listing-room':{near:'home',offset:[-.004,0]},'listing-basement':{near:'yorklibrary',offset:[.004,-.004]},
  'listing-apartment':{near:'nylibrary',offset:[.005,0]},'listing-two-bedroom':{near:'eymarket',offset:[0,-.01]},'listing-roommates':{near:'home',offset:[-.01,.01]}
 };
-export const placeGeo=(id:string):LonLat|null=>{const real=places[id]?.c||scarboroughFeature(id)?.c as LonLat|undefined;if(real)return real;const h=fictionalHomes[id]||COMMUNITY_PLACES.find(p=>p.id===id),near=h&&places[h.near]?.c;return near?[near[0]+h.offset[0],near[1]+h.offset[1]]:null;};
+export const placeGeo=(id:string):LonLat|null=>{const real=places[id==='sc-walmart'?'stc':id]?.c||scarboroughFeature(id)?.c as LonLat|undefined;if(real)return real;const h=fictionalHomes[id]||COMMUNITY_PLACES.find(p=>p.id===id),near=h&&places[h.near]?.c;return near?[near[0]+h.offset[0],near[1]+h.offset[1]]:null;};
 
 /** Great-circle distance in metres between two [lon,lat] points. */
 export function haversineMetres(a:LonLat,b:LonLat):number{
