@@ -18,6 +18,7 @@ under the **Open Database License (ODbL) v1.0** — see [`LICENSE`](./LICENSE).
 ## Files
 
 - `LICENSE` — full ODbL 1.0 text.
+- `scarborough.json` — eight additional mall/campus anchors with OSM IDs, real coordinates and separately curated compressed game cells. Refresh using `node scripts/bake-scarborough.mjs`.
 - `geo.json` — baked output: real `[lon, lat]` for every TTC stop and game place,
   former-municipality centres/bboxes, with per-feature OSM provenance and a
   `meta` block (source endpoint, license, `fetchedAt`).

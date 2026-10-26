@@ -1,4 +1,4 @@
-import {denseBlock} from './urban-form';
+import {blockForms} from './building-form';
 import {PLACES,BOUNDS,districtAt,distance,entrance,type Point} from './world';
 import {hasBuildingDoor,homeEntrance} from './building-entrances';
 import type {DistrictId} from './data';
@@ -16,7 +16,7 @@ const cache=new Map<string,BuildingEntry[]>();
 /** Same deterministic block recipe as the exterior kit; no thousands-entry global registry. */
 export function streetBuildings(cx:number,cz:number):BuildingEntry[]{
  const key=cx+','+cz,cached=cache.get(key);if(cached)return cached;
- const x=cx*24,z=cz*24,seed=Math.abs(cx*71+cz*43),district=districtAt([x+12,z+12]),dense=denseBlock(district,cx,cz);
+ const x=cx*24,z=cz*24,seed=Math.abs(cx*71+cz*43),district=districtAt([x+12,z+12]);
  const result:BuildingEntry[]=[];
  if(z<0&&x+12>=BOUNDS.west&&x+12<=BOUNDS.east&&z+12>=BOUNDS.north&&z+19<=BOUNDS.south&&!PLACES.some(p=>Math.floor(p.x/24)===cx&&Math.floor(p.z/24)===cz)&&seed%9!==0){
   const add=(bx:number,bz:number,w:number,style:BuildingStyle,side=1,house=false)=>{
@@ -24,10 +24,7 @@ export function streetBuildings(cx:number,cz:number):BuildingEntry[]{
    const approach:Point[]=house?[[x+12,z+5],landing]:[[x+(side>0?19:5),bz],landing];
    result.push({id,name:`${style==='residence'?'Residence':style==='office'?'Neighbourhood office':style==='clinic'?'Community clinic':style==='warehouse'?'Local warehouse':style==='library'?'Reading room':style==='grocery'?'Neighbourhood grocery':'Local shop'} · ${Math.abs(cx)*100+Math.abs(cz)*4+result.length+1}`,district,style,seed:buildingSeed(id),door,landing,approach,rotation:side*Math.PI/2,named:false});
   };
-  if(seed%11===0){if(!dense)add(x+12,z+11.8,12,'retail',-1);}
-  else if(dense){if(district==='toronto'||district==='scarborough'){const variant=seed%4;add(x+12,z+12,variant===0?7.8:variant===1?10.5:11,variant===0?'office':variant===1?'residence':['retail','grocery','clinic','library'][seed%4] as BuildingStyle);}else add(x+12,z+12,seed%3===0?11:7.8,seed%3===0?'residence':'office');}
-  else if(seed%6===0)add(x+12,z+12,11,seed%12===0?'warehouse':'residence');
-  else for(const [hx,hz]of [[8.5,8.5],[15.5,8.5],[8.5,14.2],[15.5,14.2]])add(x+hx,z+hz,5.2,'residence',hx<12?1:-1,true);
+  for(const f of blockForms(cx,cz,district))add(f.x,f.z,f.width,f.style,f.side,f.house);
  }
  if(cache.size>1000)cache.clear();cache.set(key,result);return result;
 }
