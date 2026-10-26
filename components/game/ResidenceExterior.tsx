@@ -18,6 +18,7 @@ export default function ResidenceExterior({spot,owned,avatar,entering,exitUntil=
   hinge.current.rotation.y=THREE.MathUtils.damp(hinge.current.rotation.y,open?-Math.PI*.48:0,8,dt);
  });
  const click=(e:{stopPropagation:()=>void;delta:number})=>{e.stopPropagation();if(owned&&enabled&&e.delta<5)onEnter()};
+ const variant=[...spot.id].reduce((n,c)=>n+c.charCodeAt(0),0)%4,upper=variant===1||variant===3,roofY=upper?7.4:4.8;
  return <group position={[spot.x,0,spot.z]}>
   {/* Recessed front wall leaves an actual opening behind the hinged panel. */}
   <Box p={[0,2.3,-.1]} s={[8,4.6,4.8]} c={spot.color}/>
@@ -25,6 +26,8 @@ export default function ResidenceExterior({spot,owned,avatar,entering,exitUntil=
   <Box p={[0,4.08,2.4]} s={[1.8,1.04,.2]} c={spot.color}/>
   <Box p={[0,1.7,2.31]} s={[1.8,3.4,.04]} c="#233832"/>
   <Box p={[0,4.72,0]} s={[8.3,.24,5.3]} c="#d8cdb8"/>
+  {upper&&<><Box p={[0,6.05,0]} s={[8,2.7,5]} c={variant===1?spot.color:'#aa7761'}/>{[-2.6,0,2.6].map(x=><Box key={'upper'+x} p={[x,6.2,2.53]} s={[1.25,1.4,.06]} c="#97b4ac"/>)}</>}
+  {variant===2?<><Box p={[-1,5.9,-.4]} s={[5.7,2.3,4.1]} c="#e0d7c3"/><Box p={[-1,7.15,-.4]} s={[5.95,.22,4.3]} c="#53615b"/><Box p={[-1,6.1,1.68]} s={[4.7,1.3,.06]} c="#97b4ac"/></>:<>{Array.from({length:5},(_,i)=><Box key={'roof'+i} p={[0,roofY+i*.28,0]} s={[8.3-i*1.45,.3,5.3-(variant===0?i*.65:0)]} c={variant===3?'#5c6261':'#735444'}/>)}</>}
   {[-2.5,2.5].map(x=><group key={x}><Box p={[x,2,2.53]} s={[1.7,1.75,.1]} c="#efdfbd"/><Box p={[x,2,2.6]} s={[1.42,1.48,.04]} c="#97b4ac"/><Box p={[x,2,2.64]} s={[.07,1.48,.04]} c="#eee1c9"/></group>)}
   <Box p={[0,.06,4.9]} s={[entry.width,.12,4.7]} c="#c9c3af"/>
   <Box p={[0,.12,3.1]} s={[2.1,.12,1.2]} c="#ddd2ba"/>

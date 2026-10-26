@@ -1,0 +1,161 @@
+{
+  "meta": {
+    "source": "OpenStreetMap via Overpass",
+    "endpoint": "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "license": "ODbL-1.0",
+    "attribution": "\u00a9 OpenStreetMap contributors",
+    "osmTimestamp": "2026-10-26T02:55:05Z",
+    "note": "Real OSM destination anchors; cell positions and exterior massing are compressed game interpretations, not surveyed footprints. Existing station locations are retained."
+  },
+  "features": [
+    {
+      "id": "sc-agincourt",
+      "name": "Agincourt Mall",
+      "cell": [
+        9,
+        -12
+      ],
+      "form": "mall",
+      "c": [
+        -79.292015,
+        43.783918
+      ],
+      "osm": "way/661957385",
+      "tags": {
+        "building": "retail",
+        "name": "Agincourt Mall",
+        "shop": "mall"
+      }
+    },
+    {
+      "id": "sc-bridlewood",
+      "name": "Bridlewood Mall",
+      "cell": [
+        7,
+        -15
+      ],
+      "form": "mall",
+      "c": [
+        -79.318426,
+        43.798351
+      ],
+      "osm": "way/661920080",
+      "tags": {
+        "building": "retail",
+        "name": "Bridlewood Mall",
+        "shop": "mall"
+      }
+    },
+    {
+      "id": "sc-woodside",
+      "name": "Woodside Square",
+      "cell": [
+        11,
+        -16
+      ],
+      "form": "mall",
+      "c": [
+        -79.2694622,
+        43.8094053
+      ],
+      "osm": "way/659839721",
+      "tags": {
+        "building": "retail",
+        "name": "Woodside Square",
+        "shop": "mall"
+      }
+    },
+    {
+      "id": "sc-malvern",
+      "name": "Malvern Town Centre",
+      "cell": [
+        14,
+        -15
+      ],
+      "form": "mall",
+      "c": [
+        -79.2220685,
+        43.806768
+      ],
+      "osm": "way/31560419",
+      "tags": {
+        "building": "retail",
+        "name": "Malvern Town Centre",
+        "shop": "mall"
+      }
+    },
+    {
+      "id": "sc-progress",
+      "name": "Centennial College \u00b7 Progress",
+      "cell": [
+        13,
+        -11
+      ],
+      "form": "campus",
+      "c": [
+        -79.2278292,
+        43.7857226
+      ],
+      "osm": "way/33013888",
+      "tags": {
+        "amenity": "college",
+        "name": "Centennial College - Progress Campus"
+      }
+    },
+    {
+      "id": "sc-morningside",
+      "name": "Centennial College \u00b7 Morningside",
+      "cell": [
+        16,
+        -11
+      ],
+      "form": "campus",
+      "c": [
+        -79.1926565,
+        43.7862435
+      ],
+      "osm": "way/660212115",
+      "tags": {
+        "building": "college",
+        "name": "Centennial College - Morningside Campus"
+      }
+    },
+    {
+      "id": "sc-utsc",
+      "name": "University of Toronto Scarborough",
+      "cell": [
+        17,
+        -10
+      ],
+      "form": "campus",
+      "c": [
+        -79.1865357,
+        43.7851996
+      ],
+      "osm": "relation/21058560",
+      "tags": {
+        "amenity": "university",
+        "name": "University of Toronto Scarborough"
+      }
+    },
+    {
+      "id": "sc-cedarbrae",
+      "name": "Cedarbrae Mall",
+      "cell": [
+        13,
+        -5
+      ],
+      "form": "mall",
+      "c": [
+        -79.228484,
+        43.757644
+      ],
+      "osm": "way/660583567",
+      "tags": {
+        "building": "retail",
+        "name": "Cedarbrae Mall",
+        "shop": "mall"
+      }
+    }
+  ]
+}

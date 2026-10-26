@@ -1,11 +1,12 @@
 import {buildingApproachAt} from './building-catalog';
 import {COMMUNITY_PLACES} from './district-content';
+import {SCARBOROUGH_PLACES} from './scarborough';
 import {isWalkable,segmentWalkable} from './navigation';
 import {homeEntrance,onHomeApproach,hasBuildingDoor} from './building-entrances';
 import {DISTRICTS,type DistrictId,type Spot} from './data';
 export type Point=[number,number];
 export const BLOCK=24, METRES_PER_UNIT=40;
-export const BOUNDS={west:-245,east:355,north:-485,south:-5};
+export const BOUNDS={west:-245,east:475,north:-485,south:-5};
 // One compressed, north-up coordinate system. Lake Ontario lies beyond z=0.
 const cells:Record<string,Point>={
  kensington:[-2,-3],queen:[-2,-2],cn:[-1,-1],waterfront:[0,-1],reference:[0,-4],home:[-3,-2],
@@ -22,7 +23,7 @@ export const DISTRICT_REGIONS:{id:DistrictId;color:string;polygon:Point[]}[]=[
  {id:'north-york',color:'#c4d6d3',polygon:[[-144,-490],[168,-490],[168,-216],[48,-216],[48,-240],[-72,-240],[-72,-216],[-144,-216]]},
  {id:'york',color:'#dac9b4',polygon:[[-144,-216],[-72,-216],[-72,-96],[-144,-96]]},
  {id:'east-york',color:'#c9d1a9',polygon:[[48,-216],[168,-216],[168,-96],[48,-96]]},
- {id:'scarborough',color:'#d9d0b0',polygon:[[168,-490],[390,-490],[390,0],[168,0]]}
+ {id:'scarborough',color:'#d9d0b0',polygon:[[168,-490],[510,-490],[510,0],[168,0]]}
 ];
 function inPolygon([x,z]:Point,points:Point[]){let inside=false;for(let i=0,j=points.length-1;i<points.length;j=i++){const [a,b]=points[i],[c,d]=points[j];if((b>z)!==(d>z)&&x<(c-a)*(z-b)/(d-b)+a)inside=!inside;}return inside;}
 export function districtAt(p:Point):DistrictId{return [...DISTRICT_REGIONS].reverse().find(r=>inPolygon(p,r.polygon))?.id||'toronto';}
@@ -42,6 +43,8 @@ const services:WorldSpot[]=[
 export const isBankPlace=(id?:string)=>id==='bank'||!!id&&id.startsWith('bank-');
 export const BANK_PLACE_IDS=['bank'];
 export const WORLD_DISTRICTS=DISTRICTS.map(d=>({...d,spots:[...d.spots.map(s=>({...s,district:d.id,x:cells[s.id][0]*BLOCK+12,z:cells[s.id][1]*BLOCK+12})),...services.filter(p=>p.district===d.id),...COMMUNITY_PLACES.filter(p=>p.district===d.id)]}));
+// Include the mapped destinations in both district browsing and the street scene.
+WORLD_DISTRICTS.find(d=>d.id==='scarborough')!.spots.push(...SCARBOROUGH_PLACES);
 export const PLACES:WorldSpot[]=WORLD_DISTRICTS.flatMap(d=>d.spots);
 export const placeById=(id:string)=>PLACES.find(p=>p.id===id);
 export const BANK_PLACES=()=>BANK_PLACE_IDS.map(id=>placeById(id)!).filter(Boolean);
@@ -83,7 +86,7 @@ export const walkMinutes=(path:Point[],bike=false,energy=100)=>Math.max(1,Math.c
 export const JOB_PLACES:Record<string,string>={barista:'queen',courier:'kensington',gallery:'cn',developer:'reference',warehouse:'islington',retail:'stc',cleaning:'nycentre'};
 export const PERSON_PLACES:Record<string,string>={maya:'queen',dev:'waterfront',amina:'reference'};
 export function nearbyPlace(p:Point){return PLACES.find(s=>distance(p,entrance(s))<=3);}
-export function chunksAround(p:Point,radius=2):Point[]{const cx=Math.floor(p[0]/BLOCK),cz=Math.floor(p[1]/BLOCK);const result:Point[]=[];for(let x=cx-radius;x<=cx+radius;x++)for(let z=cz-radius;z<=cz+radius;z++)if(x>=-11&&x<=15&&z>=-21&&z<=1)result.push([x,z]);return result;}
+export function chunksAround(p:Point,radius=2):Point[]{const cx=Math.floor(p[0]/BLOCK),cz=Math.floor(p[1]/BLOCK);const result:Point[]=[];for(let x=cx-radius;x<=cx+radius;x++)for(let z=cz-radius;z<=cz+radius;z++)result.push([x,z]);return result;}
 export const DISTRICT_CENTRES:Record<DistrictId,Point>={toronto:[-24,-48],'north-york':[0,-360],scarborough:[264,-192],etobicoke:[-192,-72],york:[-108,-192],'east-york':[108,-144]};
 
 export const nearestPlace=(p:Point)=>[...PLACES].sort((a,b)=>distance(p,entrance(a))-distance(p,entrance(b)))[0];
